@@ -28,6 +28,7 @@ clickzetta-langchain-examples/
 ├── clickzetta-qa/                  # 智能问答系统
 ├── clickzetta-hybrid-search/       # 混合搜索系统
 ├── clickzetta-sql-chat/             # SQL 智能问答
+├── clickzetta-web-crawler/         # 网络爬虫存储演示
 └── README.md                       # 项目说明
 ```
 
@@ -97,6 +98,24 @@ clickzetta-langchain-examples/
 - 智能数据库元数据分析
 - 企业级查询历史管理
 
+### 5. [ClickZetta 网络爬虫存储演示](./clickzetta-web-crawler/)
+
+![Web Crawler](images/web-crawler-demo.png)
+
+**功能特性:**
+- 🕷️ 智能网页内容爬取
+- 💾 四种存储服务完整演示
+- 🔍 语义搜索与关键词搜索
+- 📊 实时存储统计监控
+- 🌐 批量URL爬取支持
+
+**技术亮点:**
+- ClickZettaDocumentStore 文档存储
+- ClickZettaStore 键值缓存
+- ClickZettaFileStore 文件存储
+- ClickZettaVectorStore 向量搜索
+- LangChain网络爬取插件集成
+
 ## 🎨 核心优势
 
 ### 与原版对比
@@ -152,6 +171,7 @@ graph TB
         A2[问答系统 UI]
         A3[混合搜索 UI]
         A4[SQL问答 UI]
+        A5[网络爬虫 UI]
     end
 
     subgraph "业务逻辑层"
@@ -166,6 +186,9 @@ graph TB
         C2[ClickZettaHybridStore]
         C3[ClickZettaSQLChain]
         C4[ClickZettaChatMessageHistory]
+        C5[ClickZettaDocumentStore]
+        C6[ClickZettaStore]
+        C7[ClickZettaFileStore]
     end
 
     subgraph "AI 服务层"
@@ -179,17 +202,24 @@ graph TB
         E2[向量索引]
         E3[全文索引]
         E4[聊天历史表]
+        E5[文档表]
+        E6[键值表]
+        E7[文件Volume]
     end
 
     A1 --> B1
     A2 --> B1
     A3 --> B1
     A4 --> B1
+    A5 --> B1
 
     B1 --> C1
     B1 --> C2
     B1 --> C3
     B1 --> C4
+    B1 --> C5
+    B1 --> C6
+    B1 --> C7
 
     C1 --> D1
     C2 --> D1
@@ -203,6 +233,13 @@ graph TB
     E1 --> E2
     E1 --> E3
     E1 --> E4
+    E1 --> E5
+    E1 --> E6
+    E1 --> E7
+
+    C5 --> E5
+    C6 --> E6
+    C7 --> E7
 ```
 
 ## 🚀 快速开始
@@ -288,6 +325,9 @@ chmod +x start.sh
 # 启动 SQL 智能问答
 ./start.sh sql
 
+# 启动网络爬虫存储演示
+./start.sh crawler
+
 # 查看帮助信息
 ./start.sh
 ```
@@ -316,6 +356,10 @@ streamlit run streamlit_app.py
 
 # 运行 SQL 问答示例
 cd clickzetta-sql-chat
+streamlit run streamlit_app.py
+
+# 运行网络爬虫示例
+cd clickzetta-web-crawler
 streamlit run streamlit_app.py
 ```
 
@@ -355,6 +399,7 @@ streamlit run streamlit_app.py
 - `qa` - 智能问答系统
 - `search` - 混合搜索系统
 - `sql` - SQL 智能问答系统
+- `crawler` - 网络爬虫存储演示
 
 #### 环境检查功能
 
@@ -472,6 +517,12 @@ CONNECTION_TIMEOUT=60
 - API 文档问答
 - 技术规范查询
 
+### 网络内容管理
+- 竞品网站监控
+- 新闻资讯聚合
+- 技术文档收集
+- 产品信息爬取
+
 ## 📊 性能基准
 
 ### 搜索性能对比
@@ -493,6 +544,9 @@ CONNECTION_TIMEOUT=60
 | 聊天历史 | ❌ | ❌ | ✅ |
 | SQL 查询 | ❌ | ❌ | ✅ |
 | 中文分词 | ❌ | ❌ | ✅ |
+| 文档存储 | ❌ | ❌ | ✅ |
+| 文件存储 | ❌ | ❌ | ✅ |
+| 网络爬虫 | ❌ | ❌ | ✅ |
 
 ## 🔧 故障排除
 

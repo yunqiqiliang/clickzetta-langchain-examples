@@ -1,0 +1,12 @@
+streamlit>=1.28.0
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-clickzetta>=0.1.13
+dashscope>=1.14.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+lxml>=4.9.0
+html2text>=2020.1.16
+python-dateutil>=2.8.0
+validators>=0.20.0
+urllib3>=1.26.0
