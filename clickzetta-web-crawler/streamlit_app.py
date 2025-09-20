@@ -189,6 +189,117 @@ def create_sidebar_info():
     - VectorStore: 向量存储
     """)
 
+    # 数据管理功能
+    st.sidebar.header("🗑️ 数据管理")
+
+    # 统计信息
+    with st.sidebar.expander("📊 统计信息"):
+        env_status = check_environment()
+        if env_status["clickzetta_available"]:
+            try:
+                engine = get_clickzetta_engine()
+
+                # 检查各种存储的数据量
+                doc_count = 0
+                cache_count = 0
+                vector_count = 0
+                file_count = 0
+
+                try:
+                    # DocumentStore数据
+                    doc_result, _ = engine.execute_query("SELECT COUNT(*) as count FROM web_crawler_documents")
+                    doc_count = doc_result[0]['count'] if doc_result else 0
+                except:
+                    pass
+
+                try:
+                    # Cache数据
+                    cache_result, _ = engine.execute_query("SELECT COUNT(*) as count FROM web_crawler_cache")
+                    cache_count = cache_result[0]['count'] if cache_result else 0
+                except:
+                    pass
+
+                try:
+                    # Vector数据
+                    vector_result, _ = engine.execute_query("SELECT COUNT(*) as count FROM web_crawler_vectors")
+                    vector_count = vector_result[0]['count'] if vector_result else 0
+                except:
+                    pass
+
+                st.metric("📚 文档数据", f"{doc_count} 条")
+                st.metric("🗂️ 缓存数据", f"{cache_count} 条")
+                st.metric("🧠 向量数据", f"{vector_count} 条")
+
+                total_data = doc_count + cache_count + vector_count
+                if total_data > 0:
+                    st.success(f"💡 检测到已有 {total_data} 条数据")
+
+            except Exception as e:
+                st.warning(f"⚠️ 无法获取统计信息: {e}")
+        else:
+            st.warning("⚠️ 请先配置ClickZetta连接")
+
+    # 清空数据功能
+    with st.sidebar.expander("🗑️ 数据清空"):
+        st.write("**清空爬虫数据**")
+        st.caption("删除所有爬取的网页数据和文件，重新开始")
+
+        if st.button("🗑️ 清空所有数据", type="secondary", help="删除所有数据"):
+            env_status = check_environment()
+            if env_status["clickzetta_available"]:
+                st.session_state.clear_data_requested = True
+                st.info("数据清空请求已提交，正在处理...")
+                st.rerun()
+            else:
+                st.warning("⚠️ 请先配置ClickZetta连接")
+
+def clear_file_storage(crawler_instance):
+    """清空文件存储"""
+    try:
+        # 获取所有文件
+        files = crawler_instance.file_store.list_files()
+        if not files:
+            st.info("没有找到文件需要删除")
+            return 0
+
+        st.info(f"找到 {len(files)} 个文件，开始删除...")
+
+        # 收集文件路径
+        file_paths = []
+        for file_info in files:
+            if isinstance(file_info, tuple) and len(file_info) >= 1:
+                file_paths.append(file_info[0])
+
+        if not file_paths:
+            st.info("没有找到有效的文件路径")
+            return 0
+
+        # 删除文件
+
+        # 构建正确的键名（基于 store_file 的存储方式）
+        keys_to_delete = []
+        for key in file_paths:
+            keys_to_delete.append(key)                    # 主文件键
+            keys_to_delete.append(f"_metadata_{key}")     # 元数据键
+
+        # 使用 volume_store.mdelete 删除
+        crawler_instance.file_store.volume_store.mdelete(keys_to_delete)
+
+        # 验证删除结果
+        remaining_files = crawler_instance.file_store.list_files()
+        remaining_count = len(remaining_files) if remaining_files else 0
+
+        if remaining_count == 0:
+            st.success("🎉 所有文件已清空")
+            return len(file_paths)
+        else:
+            st.warning(f"⚠️ 仍有 {remaining_count} 个文件残留")
+            return len(file_paths) - remaining_count
+
+    except Exception as e:
+        st.error(f"文件存储清空失败: {e}")
+        return 0
+
 def get_clickzetta_engine():
     """获取ClickZetta引擎"""
     config = load_env_config()
@@ -432,8 +543,6 @@ class WebCrawlerDemo:
                             # file_info[1] 是文件大小
                             file_size = file_info[1]
                             total_size += file_size
-                            # 调试信息：显示每个文件的详细信息
-                            # st.write(f"文件: {file_info[0]}, 大小: {file_size} bytes")
 
                 stats["files"] = {
                     "file_count": file_count,
@@ -873,6 +982,32 @@ analyze_business_impact(policies)
         2. 点击"🚀 开始爬取"按钮
         3. 在"🔍 内容搜索"标签页测试搜索功能
         4. 在"📊 存储统计"标签页查看数据状态
+
+        #### 4️⃣ 文件管理操作 ⭐
+        **重要提示：可靠的文件删除方法**
+
+        当需要清空存储数据时，请使用以下操作：
+        1. 点击侧边栏的"🗑️ 清空所有数据"按钮
+        2. 系统会自动使用**优化的删除策略**：
+           - 识别所有相关文件键（主键 + 元数据键）
+           - 一次性批量删除所有相关数据
+           - 确保文件完全从存储中移除
+
+        **技术说明**：
+        - 🔑 **关键发现**: 每个文件有两个键（主键 + `_metadata_`键），必须同时删除
+        - ✅ **有效方法**: 系统已优化为直接使用 `volume_store.mdelete()`
+        - 🎯 **删除策略**: 自动识别并删除所有相关键，确保完全清理
+
+        ```python
+        # 系统实现的删除方式
+        keys_to_delete = []
+        for file_path in file_paths:
+            keys_to_delete.append(file_path)              # 主文件键
+            keys_to_delete.append(f"_metadata_{file_path}") # 元数据键
+
+        # 一次性删除所有相关键
+        crawler.file_store.volume_store.mdelete(keys_to_delete)
+        ```
         """)
 
         st.markdown("### 🔧 自定义开发")
@@ -1011,6 +1146,140 @@ def main():
         engine = get_clickzetta_engine()
         crawler = WebCrawlerDemo(engine)
         st.success("✅ ClickZetta存储服务初始化成功")
+
+        # 处理数据清空请求
+        if st.session_state.get('clear_data_requested', False):
+            st.info("正在清空数据...")
+
+            try:
+                # 清空各种存储表
+                tables_to_clear = [
+                    "web_crawler_documents",
+                    "web_crawler_cache",
+                    "web_crawler_vectors"
+                ]
+
+                for table in tables_to_clear:
+                    try:
+                        delete_query = f"DELETE FROM {table}"
+                        engine.execute_query(delete_query)
+                    except:
+                        # 表不存在是正常的
+                        pass
+
+                # 清空文件存储（使用crawler实例）
+                deleted_count = clear_file_storage(crawler)
+
+                # 验证文件是否真的被删除
+                verification_files = crawler.file_store.list_files()
+                remaining_files = len(verification_files) if verification_files else 0
+
+                if remaining_files > 0:
+                    st.warning(f"⚠️ 注意：删除了 {deleted_count} 个文件，但仍有 {remaining_files} 个文件残留")
+
+                    # 分析残留文件是否与删除的文件相同
+                    remaining_paths = set()
+                    if verification_files:
+                        for file_info in verification_files:
+                            if isinstance(file_info, tuple) and len(file_info) >= 1:
+                                remaining_paths.add(file_info[0])
+
+                    with st.expander(f"查看残留文件详情 ({len(verification_files)}个)"):
+                        for file_info in verification_files:
+                            if isinstance(file_info, tuple) and len(file_info) >= 1:
+                                st.write(f"• {file_info[0]}")
+
+                    # 尝试再次删除残留文件
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("🔄 尝试再次删除残留文件"):
+                            try:
+                                remaining_file_paths = [f[0] for f in verification_files if isinstance(f, tuple) and len(f) >= 1]
+                                if remaining_file_paths:
+                                    st.info(f"尝试删除 {len(remaining_file_paths)} 个残留文件...")
+                                    # 包含主键和元数据键
+                                    all_remaining_keys = []
+                                    for key in remaining_file_paths:
+                                        all_remaining_keys.append(key)
+                                        all_remaining_keys.append(f"_metadata_{key}")
+                                    try:
+                                        crawler.file_store.mdelete(all_remaining_keys)
+                                    except Exception as fs_err:
+                                        st.warning(f"FileStore删除失败，尝试底层删除: {fs_err}")
+                                        crawler.file_store.volume_store.mdelete(all_remaining_keys)
+
+                                    # 再次验证
+                                    final_check = crawler.file_store.list_files()
+                                    final_count = len(final_check) if final_check else 0
+
+                                    if final_count == 0:
+                                        st.success("✅ 残留文件删除成功!")
+                                    else:
+                                        st.error(f"❌ 仍有 {final_count} 个文件无法删除，可能存在权限问题或API限制")
+                            except Exception as retry_e:
+                                st.error(f"❌ 再次删除失败: {retry_e}")
+
+                else:
+                    st.success("✅ 文件存储已完全清空")
+
+                # 重置session状态
+                if 'crawl_results' in st.session_state:
+                    st.session_state.crawl_results = []
+
+                # 清除清空请求标志
+                st.session_state.clear_data_requested = False
+
+                # 设置标记以便下次访问统计页面时自动刷新
+                st.session_state.force_stats_refresh = True
+
+                st.success("✅ 所有数据已清空，请重新开始爬取")
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ 清空数据失败: {e}")
+                st.session_state.clear_data_requested = False
+
+        # 自动检测并显示已有数据统计
+        if st.session_state.get('dashscope_available', False):
+            try:
+                # 检查各个存储服务的数据量
+                storage_stats = {}
+
+                # 检查DocumentStore数据
+                try:
+                    doc_count_query = f"SELECT COUNT(*) as count FROM {crawler.doc_store.table_name}"
+                    doc_result, _ = engine.execute_query(doc_count_query)
+                    storage_stats['documents'] = doc_result[0]['count'] if doc_result else 0
+                except:
+                    storage_stats['documents'] = 0
+
+                # 检查Cache数据
+                try:
+                    cache_count_query = f"SELECT COUNT(*) as count FROM {crawler.cache_store.table_name}"
+                    cache_result, _ = engine.execute_query(cache_count_query)
+                    storage_stats['cache'] = cache_result[0]['count'] if cache_result else 0
+                except:
+                    storage_stats['cache'] = 0
+
+                # 检查VectorStore数据
+                try:
+                    if crawler.vector_store:
+                        vector_count_query = f"SELECT COUNT(*) as count FROM {crawler.vector_store.table_name}"
+                        vector_result, _ = engine.execute_query(vector_count_query)
+                        storage_stats['vectors'] = vector_result[0]['count'] if vector_result else 0
+                    else:
+                        storage_stats['vectors'] = 0
+                except:
+                    storage_stats['vectors'] = 0
+
+                # 显示数据统计
+                total_data = sum(storage_stats.values())
+                if total_data > 0:
+                    st.info(f"🎉 检测到已存在数据: 📚文档{storage_stats['documents']}条 | 🗂️缓存{storage_stats['cache']}条 | 🧠向量{storage_stats['vectors']}条，可直接使用搜索功能")
+            except Exception as e:
+                # 数据检测失败，不影响主要功能
+                pass
+
     except Exception as e:
         st.error(f"❌ ClickZetta连接失败: {e}")
         return
@@ -1171,9 +1440,18 @@ def main():
     with tab3:
         st.header("存储统计")
 
-        if st.button("🔄 刷新统计"):
-            with st.spinner("获取统计信息..."):
+        # 检查是否需要强制刷新统计
+        force_refresh = st.session_state.get('force_stats_refresh', False)
+        if force_refresh:
+            st.session_state.force_stats_refresh = False  # 清除标记
+            with st.spinner("自动刷新统计信息..."):
                 stats = crawler.get_storage_stats()
+                st.info("📊 统计数据已自动更新")
+
+        if st.button("🔄 刷新统计") or force_refresh:
+            if not force_refresh:  # 避免重复获取
+                with st.spinner("获取统计信息..."):
+                    stats = crawler.get_storage_stats()
 
             if "error" not in stats:
                 col1, col2, col3 = st.columns(3)
@@ -1183,9 +1461,10 @@ def main():
                         "文档总数",
                         stats.get("documents", {}).get("doc_count", 0)
                     )
+                    avg_length = stats.get('documents', {}).get('avg_content_length', 0) or 0
                     st.metric(
                         "平均文档长度",
-                        f"{stats.get('documents', {}).get('avg_content_length', 0):.0f} 字符"
+                        f"{avg_length:.0f} 字符"
                     )
 
                 with col2:
