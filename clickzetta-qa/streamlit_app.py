@@ -777,17 +777,28 @@ with col2:
 
                 try:
                     vector_schema_query = f"DESCRIBE TABLE {vector_table}"
-                    vector_result = st.session_state.engine.execute_query(vector_schema_query)
+                    vector_result, vector_description = st.session_state.engine.execute_query(vector_schema_query)
                     if vector_result:
-                        vector_df = pd.DataFrame(vector_result.fetchall(),
-                                               columns=[desc[0] for desc in vector_result.description])
+                        # Handle duplicate column names
+                        column_names = [desc[0] for desc in vector_description]
+                        unique_column_names = []
+                        name_counts = {}
+                        for name in column_names:
+                            if name in name_counts:
+                                name_counts[name] += 1
+                                unique_column_names.append(f"{name}_{name_counts[name]}")
+                            else:
+                                name_counts[name] = 0
+                                unique_column_names.append(name)
+
+                        vector_df = pd.DataFrame(vector_result, columns=unique_column_names)
                         st.dataframe(vector_df, use_container_width=True)
 
                         # Get vector count
                         vector_count_query = f"SELECT count(*) as total_vectors FROM {vector_table}"
-                        vector_count_result = st.session_state.engine.execute_query(vector_count_query)
+                        vector_count_result, _ = st.session_state.engine.execute_query(vector_count_query)
                         if vector_count_result:
-                            vector_count = vector_count_result.fetchone()[0]
+                            vector_count = vector_count_result[0][0]
                             st.metric("🧠 存储的文档向量数", vector_count)
                 except Exception as e:
                     st.warning(f"VectorStore表信息获取失败: {e}")
@@ -800,17 +811,28 @@ with col2:
 
                 try:
                     chat_schema_query = f"DESCRIBE TABLE {chat_table}"
-                    chat_result = st.session_state.engine.execute_query(chat_schema_query)
+                    chat_result, chat_description = st.session_state.engine.execute_query(chat_schema_query)
                     if chat_result:
-                        chat_df = pd.DataFrame(chat_result.fetchall(),
-                                             columns=[desc[0] for desc in chat_result.description])
+                        # Handle duplicate column names
+                        column_names = [desc[0] for desc in chat_description]
+                        unique_column_names = []
+                        name_counts = {}
+                        for name in column_names:
+                            if name in name_counts:
+                                name_counts[name] += 1
+                                unique_column_names.append(f"{name}_{name_counts[name]}")
+                            else:
+                                name_counts[name] = 0
+                                unique_column_names.append(name)
+
+                        chat_df = pd.DataFrame(chat_result, columns=unique_column_names)
                         st.dataframe(chat_df, use_container_width=True)
 
                         # Get message count for current session
                         message_count_query = f"SELECT count(*) as total_messages FROM {chat_table} WHERE session_id = '{st.session_state.session_id}'"
-                        message_count_result = st.session_state.engine.execute_query(message_count_query)
+                        message_count_result, _ = st.session_state.engine.execute_query(message_count_query)
                         if message_count_result:
-                            message_count = message_count_result.fetchone()[0]
+                            message_count = message_count_result[0][0]
                             st.metric("💬 当前会话消息数", message_count)
 
                         # Get total sessions count

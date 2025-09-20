@@ -921,20 +921,31 @@ with col2:
                 try:
                     # Get table schema
                     schema_query = f"DESCRIBE TABLE {table_name}"
-                    schema_result = st.session_state.manager.engine.execute_query(schema_query)
+                    schema_result, schema_description = st.session_state.manager.engine.execute_query(schema_query)
 
                     if schema_result:
                         st.write("**📋 表结构信息**:")
                         import pandas as pd
-                        schema_df = pd.DataFrame(schema_result.fetchall(),
-                                               columns=[desc[0] for desc in schema_result.description])
+                        # Handle duplicate column names
+                        column_names = [desc[0] for desc in schema_description]
+                        unique_column_names = []
+                        name_counts = {}
+                        for name in column_names:
+                            if name in name_counts:
+                                name_counts[name] += 1
+                                unique_column_names.append(f"{name}_{name_counts[name]}")
+                            else:
+                                name_counts[name] = 0
+                                unique_column_names.append(name)
+
+                        schema_df = pd.DataFrame(schema_result, columns=unique_column_names)
                         st.dataframe(schema_df, use_container_width=True)
 
                         # Get record count
                         count_query = f"SELECT count(*) as total_documents FROM {table_name}"
-                        count_result = st.session_state.manager.engine.execute_query(count_query)
+                        count_result, _ = st.session_state.manager.engine.execute_query(count_query)
                         if count_result:
-                            total_count = count_result.fetchone()[0]
+                            total_count = count_result[0][0]
                             st.metric("📄 存储的文档数", total_count)
 
                         # Display search capabilities
