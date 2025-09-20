@@ -1,4 +1,5 @@
 import os, tempfile, streamlit as st, sys
+import pandas as pd
 from dotenv import load_dotenv
 from langchain_clickzetta import ClickZettaEngine, ClickZettaVectorStore
 from langchain_community.embeddings import DashScopeEmbeddings
@@ -32,6 +33,360 @@ def load_env_config():
         'llm_model': os.getenv('DASHSCOPE_LLM_MODEL', 'qwen-plus'),
     }
 
+# Helper function to show educational help documentation
+def show_help_documentation():
+    """显示详细的帮助文档"""
+    st.markdown("# 📚 ClickZetta 文档智能摘要系统 - 学习指南")
+
+    # Create tabs for different sections
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📋 系统概述",
+        "🏗️ 技术架构",
+        "💡 代码示例",
+        "🔧 最佳实践"
+    ])
+
+    with tab1:
+        st.markdown("## 📋 系统功能概述")
+
+        st.markdown("""
+        ### 🎯 核心功能
+
+        **ClickZetta 文档智能摘要系统** 是一个基于 **ClickZetta VectorStore + 通义千问 AI** 的企业级文档摘要解决方案。
+
+        #### 🔍 主要特点：
+        - **📄 PDF文档解析**: 使用 LangChain PyPDFLoader 智能解析PDF文档
+        - **🧠 向量化存储**: 利用 ClickZetta VectorStore 存储文档向量表示
+        - **🤖 AI智能摘要**: 集成通义千问大语言模型生成高质量摘要
+        - **🎛️ 个性化配置**: 支持摘要语言、长度、风格的自定义设置
+        - **📊 实时监控**: 提供详细的处理状态和技术指标展示
+        """)
+
+        st.markdown("---")
+
+        st.markdown("## 🏢 企业应用场景")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            #### 📊 商业文档处理
+            - **合同摘要**: 快速提取合同关键条款
+            - **报告总结**: 生成财务、市场报告摘要
+            - **政策解读**: 将复杂政策文件转化为要点
+            """)
+
+            st.markdown("""
+            #### 📚 知识管理
+            - **技术文档**: 提取技术规范核心内容
+            - **培训材料**: 生成培训文档精华版本
+            - **研究论文**: 快速获取学术论文要点
+            """)
+
+        with col2:
+            st.markdown("""
+            #### 🏛️ 组织效率提升
+            - **会议纪要**: 从长篇会议记录提取决策要点
+            - **法律文件**: 法律条文的通俗化解释
+            - **产品手册**: 复杂产品说明的简化版本
+            """)
+
+            st.markdown("""
+            #### 🔍 信息检索增强
+            - **文档索引**: 为大量文档建立语义索引
+            - **内容发现**: 通过向量搜索发现相关内容
+            - **智能归档**: 基于内容特征自动分类
+            """)
+
+    with tab2:
+        st.markdown("## 🏗️ 技术架构深度解析")
+
+        # Architecture diagram
+        st.markdown("""
+        ### 📐 系统架构图
+
+        ```
+        用户上传PDF文档
+              ↓
+        ┌─────────────────────┐
+        │   PyPDFLoader      │ ← 文档解析层
+        │   文档分页加载       │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │  DashScope嵌入模型  │ ← 向量化层
+        │  text-embedding-v4  │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │ ClickZetta          │ ← 存储层
+        │ VectorStore         │
+        │ (向量数据库)         │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │  相似性搜索          │ ← 检索层
+        │  (Cosine距离)       │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │   通义千问 AI        │ ← AI处理层
+        │   (qwen-plus)       │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │   智能摘要结果       │ ← 输出层
+        └─────────────────────┘
+        ```
+        """)
+
+        st.markdown("---")
+
+        st.markdown("## 🗄️ ClickZetta 存储组件详解")
+
+        # VectorStore detailed explanation
+        st.markdown("""
+        ### 🧠 VectorStore (向量存储) - 本应用的核心存储组件
+
+        **类比理解**: VectorStore 就像是一个**超级智能的图书管理员大脑**
+        - 📚 **传统图书馆**: 按照分类号排列书籍 (关键词检索)
+        - 🧠 **VectorStore**: 理解书籍的"语义含义"，能找到意思相近的内容 (语义检索)
+
+        #### 🔧 技术特性
+        """)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            **📊 数据存储结构**
+            - **表名**: `{table_prefix}_summary_vectors`
+            - **向量维度**: 1536维 (text-embedding-v4)
+            - **距离度量**: Cosine相似度
+            - **索引类型**: HNSW高性能向量索引
+            """.format(table_prefix=app_config.get_vector_table_name("summary").split('_')[0]))
+
+        with col2:
+            st.markdown("""
+            **⚡ 性能优化**
+            - **批量插入**: 支持大量文档快速存储
+            - **增量更新**: 新文档无需重建整个索引
+            - **分布式存储**: 利用ClickZetta分布式架构
+            - **内存优化**: 高效的向量压缩算法
+            """)
+
+        st.markdown("---")
+
+        st.markdown("## 🤖 AI 处理流程详解")
+
+        # AI processing workflow
+        st.markdown("""
+        ### 🔄 摘要生成工作流
+
+        #### 1️⃣ 文档预处理阶段
+        ```python
+        # PDF文档加载和分页
+        loader = PyPDFLoader(file_path)
+        pages = loader.load_and_split()
+        # 每页都会成为一个独立的文档块
+        ```
+
+        #### 2️⃣ 向量化存储阶段
+        ```python
+        # 文档向量化并存储到ClickZetta
+        vectorstore = ClickZettaVectorStore(
+            engine=engine,
+            embeddings=DashScopeEmbeddings(),
+            table_name="summary_vectors"
+        )
+        vectorstore.add_documents(pages)
+        ```
+
+        #### 3️⃣ 智能检索阶段
+        ```python
+        # 使用语义检索找到最相关的文档片段
+        relevant_docs = vectorstore.similarity_search(
+            "文档摘要", k=10
+        )
+        ```
+
+        #### 4️⃣ AI摘要生成阶段
+        ```python
+        # 使用通义千问生成个性化摘要
+        chain = load_summarize_chain(
+            llm=Tongyi(),
+            chain_type="stuff",
+            prompt=custom_prompt
+        )
+        summary = chain.invoke({"input_documents": relevant_docs})
+        ```
+        """)
+
+    with tab3:
+        st.markdown("## 💡 核心代码示例")
+
+        st.markdown("### 🔧 关键组件初始化")
+
+        st.code("""
+# 1. ClickZetta 引擎初始化
+engine = ClickZettaEngine(
+    service="your-service",
+    instance="your-instance",
+    workspace="your-workspace",
+    schema="your-schema",
+    username="your-username",
+    password="your-password",
+    vcluster="your-vcluster"
+)
+
+# 2. DashScope 嵌入模型配置
+embeddings = DashScopeEmbeddings(
+    dashscope_api_key="your-api-key",
+    model="text-embedding-v4"  # 最新的嵌入模型
+)
+
+# 3. 通义千问语言模型配置
+llm = Tongyi(
+    dashscope_api_key="your-api-key",
+    model_name="qwen-plus",      # 平衡性能和成本
+    temperature=0.1              # 低温度确保摘要稳定性
+)
+
+# 4. ClickZetta向量存储初始化
+vectorstore = ClickZettaVectorStore(
+    engine=engine,
+    embeddings=embeddings,
+    table_name="document_summary_vectors",
+    distance_metric="cosine"     # 适合文本相似性计算
+)
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 🎯 自定义摘要提示词")
+
+        st.code("""
+# 构建个性化摘要提示词
+summary_prompt = PromptTemplate(
+    input_variables=["text"],
+    template=f'''
+{language_instruction}{style_instruction}，
+字数控制在{summary_length}字以内。
+
+文档内容：
+{text}
+
+摘要：
+'''
+)
+
+# 摘要链配置
+chain = load_summarize_chain(
+    llm,
+    chain_type="stuff",        # 适合中短文档的处理方式
+    prompt=summary_prompt
+)
+
+# 执行摘要生成
+result = chain.invoke({"input_documents": relevant_docs})
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 📊 数据表结构示例")
+
+        st.code("""
+-- ClickZetta VectorStore 表结构
+CREATE TABLE document_summary_vectors (
+    id String,                    -- 文档唯一标识
+    content String,               -- 原始文档内容
+    metadata String,              -- JSON格式元数据
+    embedding Array(Float32),     -- 1536维向量表示
+    created_at DateTime           -- 创建时间
+) ENGINE = ReplicatedMergeTree()
+ORDER BY id;
+
+-- 示例查询：相似性搜索
+SELECT id, content, metadata,
+       cosineDistance(embedding, [0.1, 0.2, ...]) as similarity
+FROM document_summary_vectors
+ORDER BY similarity ASC
+LIMIT 10;
+        """, language="sql")
+
+    with tab4:
+        st.markdown("## 🔧 最佳实践与优化建议")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            ### ⚡ 性能优化
+
+            #### 📄 文档处理优化
+            - **文件大小**: 建议单个PDF不超过10MB
+            - **页数限制**: 超过100页的文档建议分片处理
+            - **内容质量**: 确保PDF文本可提取（非扫描版）
+
+            #### 🧠 向量存储优化
+            - **批量处理**: 一次处理多个文档提高效率
+            - **索引维护**: 定期优化向量索引性能
+            - **存储清理**: 删除过期或重复的向量数据
+
+            #### 🤖 AI调用优化
+            - **温度设置**: 摘要任务使用低温度(0.1-0.3)
+            - **长度控制**: 根据使用场景调整摘要长度
+            - **并发限制**: 避免过多并发API调用
+            """)
+
+        with col2:
+            st.markdown("""
+            ### 🛡️ 安全与稳定性
+
+            #### 🔐 数据安全
+            - **环境变量**: 所有敏感信息使用环境变量
+            - **连接加密**: 确保数据库连接使用SSL
+            - **权限控制**: 最小权限原则配置数据库访问
+
+            #### 🔄 错误处理
+            - **连接重试**: 网络异常时自动重试机制
+            - **优雅降级**: API失败时的备用方案
+            - **日志记录**: 详细的错误日志便于排查
+
+            #### 📊 监控告警
+            - **性能监控**: 跟踪API调用延迟和成功率
+            - **存储监控**: 监控向量存储的使用情况
+            - **成本控制**: 设置API调用频率限制
+            """)
+
+        st.markdown("---")
+
+        st.markdown("## 🎓 学习建议")
+
+        st.markdown("""
+        ### 📚 循序渐进的学习路径
+
+        #### 🟢 初级阶段 (理解基础概念)
+        1. **熟悉界面操作**: 上传文档，尝试不同摘要设置
+        2. **观察处理流程**: 注意文档加载→向量化→摘要生成的各个步骤
+        3. **对比摘要质量**: 使用不同的语言模型和参数设置
+
+        #### 🟡 中级阶段 (理解技术原理)
+        1. **学习向量检索**: 理解相似性搜索的工作原理
+        2. **研究提示词工程**: 尝试修改摘要提示词模板
+        3. **探索存储结构**: 查看ClickZetta中的实际数据表
+
+        #### 🔴 高级阶段 (深度定制开发)
+        1. **性能调优**: 优化大文档的处理流程
+        2. **功能扩展**: 添加多语言支持、图表提取等
+        3. **集成部署**: 将系统集成到企业现有工作流中
+
+        ### 📖 相关资源
+        - **[ClickZetta 官方文档](https://www.yunqi.tech/documents/)**: 获取最新的平台功能和最佳实践
+        - **[LangChain 文档](https://docs.langchain.com/)**: 深入了解 LangChain 框架
+        - **[通义千问 API](https://help.aliyun.com/zh/dashscope/)**: DashScope 平台使用指南
+        """)
+
 # Streamlit app configuration
 st.set_page_config(
     page_title="ClickZetta Document Summary",
@@ -39,8 +394,30 @@ st.set_page_config(
     layout="wide"
 )
 
+# Main navigation
+st.sidebar.markdown("## 📋 导航菜单")
+page_selection = st.sidebar.selectbox(
+    "选择功能页面",
+    ["🚀 文档摘要", "📚 学习指南"],
+    key="summary_page_selection"
+)
+
+if page_selection == "📚 学习指南":
+    show_help_documentation()
+    st.stop()
+
 st.title('📄 ClickZetta 文档智能摘要')
-st.markdown("*基于 ClickZetta 向量存储的企业级文档摘要系统*")
+st.markdown("*基于 ClickZetta VectorStore + 通义千问 AI 的企业级文档摘要系统*")
+
+# Add educational info banner
+st.info("""
+🎯 **系统特色**:
+• **🧠 VectorStore**: 使用 `{table_name}` 表存储文档向量，支持语义相似性检索
+• **🤖 通义千问**: 集成 qwen-plus 模型，提供高质量的中英文摘要生成
+• **📊 智能检索**: 通过向量相似性搜索找到最相关的文档片段进行摘要
+
+💡 **使用提示**: 点击侧边栏的"📚 学习指南"了解详细的技术原理和最佳实践
+""".format(table_name=app_config.get_vector_table_name("summary")))
 
 # Configuration status banner
 env_config = load_env_config()
@@ -363,11 +740,38 @@ if st.button("🚀 开始摘要", type="primary", use_container_width=True):
 
                 # Technical details (expandable)
                 with st.expander("🔧 技术详情"):
-                    st.write(f"**向量存储表**: document_summary_vectors")
-                    st.write(f"**嵌入模型**: {embedding_model}")
-                    st.write(f"**语言模型**: {llm_model}")
-                    st.write(f"**距离度量**: cosine")
-                    st.write(f"**处理的文档片段**: {len(relevant_docs)} / {len(pages)}")
+                    table_name = app_config.get_vector_table_name("summary")
+                    st.write(f"**📊 ClickZetta VectorStore 存储详情**:")
+                    st.write(f"• **向量存储表**: `{table_name}`")
+                    st.write(f"• **嵌入模型**: `{embedding_model}` (1536维向量)")
+                    st.write(f"• **语言模型**: `{llm_model}` (通义千问)")
+                    st.write(f"• **距离度量**: `cosine` 相似度")
+                    st.write(f"• **处理的文档片段**: {len(relevant_docs)} / {len(pages)}")
+
+                    # Add table inspection functionality
+                    if st.button("🔍 查看向量表结构", key="inspect_vector_table"):
+                        try:
+                            # Get table schema
+                            schema_query = f"DESCRIBE TABLE {table_name}"
+                            schema_result = engine.execute_query(schema_query)
+
+                            if schema_result:
+                                st.write("**📋 表结构信息**:")
+                                schema_df = pd.DataFrame(schema_result.fetchall(),
+                                                       columns=[desc[0] for desc in schema_result.description])
+                                st.dataframe(schema_df, use_container_width=True)
+
+                            # Get record count
+                            count_query = f"SELECT count(*) as total_vectors FROM {table_name}"
+                            count_result = engine.execute_query(count_query)
+                            if count_result:
+                                total_count = count_result.fetchone()[0]
+                                st.metric("📊 向量总数", total_count)
+
+                        except Exception as e:
+                            st.warning(f"暂无法获取表结构信息: {e}")
+
+                    st.write("**📖 更多信息**: 访问 [ClickZetta 官方文档](https://www.yunqi.tech/documents/) 了解VectorStore详细功能")
 
         except Exception as e:
             st.error(f"❌ 处理过程中发生错误: {str(e)}")

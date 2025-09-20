@@ -1,4 +1,6 @@
 import os, sys, tempfile, streamlit as st, uuid
+import pandas as pd
+import json
 from datetime import datetime
 
 # Add parent directory to path for importing components
@@ -23,6 +25,427 @@ from config.clickzetta_config import load_app_config
 # 应用配置
 app_config = load_app_config("qa")
 
+# Helper function to show educational help documentation
+def show_help_documentation():
+    """显示详细的帮助文档"""
+    st.markdown("# 📚 ClickZetta 智能问答系统 - 学习指南")
+
+    # Create tabs for different sections
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📋 系统概述",
+        "🏗️ 技术架构",
+        "💡 代码示例",
+        "🔧 最佳实践"
+    ])
+
+    with tab1:
+        st.markdown("## 📋 系统功能概述")
+
+        st.markdown("""
+        ### 🎯 核心功能
+
+        **ClickZetta 智能问答系统** 是一个基于 **RAG (检索增强生成) 架构** 的企业级问答解决方案，集成了多个ClickZetta存储组件。
+
+        #### 🔍 主要特点：
+        - **🧠 VectorStore**: 存储文档向量，支持语义相似性检索
+        - **💬 ChatMessageHistory**: 持久化对话历史，支持多轮会话
+        - **🤖 智能检索**: 结合向量检索和生成式AI的RAG架构
+        - **📊 会话管理**: 独立会话ID，支持多用户并发使用
+        - **🔄 实时交互**: 流式对话界面，提供即时反馈
+        """)
+
+        st.markdown("---")
+
+        st.markdown("## 🏢 企业应用场景")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            #### 📚 智能知识库
+            - **企业文档查询**: 快速查找公司政策、流程文档
+            - **技术支持**: 基于产品文档的自动客服
+            - **培训助手**: 员工培训材料的智能问答
+            """)
+
+            st.markdown("""
+            #### 🏥 专业领域应用
+            - **医疗诊断辅助**: 基于医学文献的辅助诊断
+            - **法律咨询**: 法律条文和案例的智能检索
+            - **学术研究**: 研究论文的智能摘要和问答
+            """)
+
+        with col2:
+            st.markdown("""
+            #### 💼 业务效率提升
+            - **会议助手**: 会议纪要的智能问答
+            - **销售支持**: 产品资料的快速检索
+            - **项目管理**: 项目文档的智能查询
+            """)
+
+            st.markdown("""
+            #### 🔍 个人知识管理
+            - **学习笔记**: 个人笔记的智能整理
+            - **文档归档**: 自动分类和检索文档
+            - **信息发现**: 发现文档间的潜在联系
+            """)
+
+    with tab2:
+        st.markdown("## 🏗️ 技术架构深度解析")
+
+        # Architecture diagram
+        st.markdown("""
+        ### 📐 RAG (检索增强生成) 架构图
+
+        ```
+        用户提问
+            ↓
+        ┌─────────────────────┐
+        │   问题预处理         │ ← 查询优化层
+        │   (Query Processing) │
+        └─────────────────────┘
+            ↓
+        ┌─────────────────────┐
+        │ ClickZetta          │ ← 向量检索层
+        │ VectorStore         │
+        │ 语义相似性搜索       │
+        └─────────────────────┘
+            ↓
+        ┌─────────────────────┐
+        │   检索结果           │ ← 上下文构建层
+        │   + 历史对话         │
+        └─────────────────────┘
+            ↓
+        ┌─────────────────────┐
+        │   通义千问 AI        │ ← 生成回答层
+        │   (RAG提示词)       │
+        └─────────────────────┘
+            ↓
+        ┌─────────────────────┐
+        │ ClickZetta          │ ← 记忆存储层
+        │ ChatMessageHistory  │
+        └─────────────────────┘
+            ↓
+        ┌─────────────────────┐
+        │   用户界面展示       │ ← 交互展示层
+        └─────────────────────┘
+        ```
+        """)
+
+        st.markdown("---")
+
+        st.markdown("## 🗄️ ClickZetta 存储组件详解")
+
+        # Multi-component explanation
+        st.markdown("""
+        ### 🧠 VectorStore + 💬 ChatMessageHistory - 双存储架构
+
+        本应用同时使用了两个核心ClickZetta存储组件，实现完整的RAG+记忆功能：
+        """)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            #### 🧠 VectorStore (向量存储)
+            **类比**: 像一个**超级智能的图书索引**
+            - 📚 将文档转换为数学向量表示
+            - 🔍 支持"找相似内容"而非"找关键词"
+            - ⚡ 毫秒级语义检索性能
+            - 🎯 为RAG提供相关上下文
+            """)
+
+        with col2:
+            st.markdown("""
+            #### 💬 ChatMessageHistory (对话存储)
+            **类比**: 像一个**永不遗忘的对话记录员**
+            - 💾 持久化存储每轮对话
+            - 🔄 支持多会话并发管理
+            - 📊 提供会话统计和分析
+            - 🧠 为AI提供上下文记忆
+            """)
+
+        st.markdown("""
+        #### 🔧 技术特性对比
+
+        | 特性 | VectorStore | ChatMessageHistory |
+        |------|-------------|-------------------|
+        | **数据类型** | 文档向量+元数据 | 结构化对话记录 |
+        | **查询方式** | 相似性搜索 | 时间/会话ID查询 |
+        | **主要用途** | 知识检索 | 对话记忆 |
+        | **表结构** | `{vector_table}` | `{chat_table}` |
+        | **索引类型** | 向量索引(HNSW) | B+树索引 |
+        """.format(
+            vector_table=app_config.get_vector_table_name("qa"),
+            chat_table=app_config.get_chat_table_name("qa")
+        ))
+
+        st.markdown("---")
+
+        st.markdown("## 🤖 RAG 工作流程详解")
+
+        # RAG workflow explanation
+        st.markdown("""
+        ### 🔄 问答生成完整流程
+
+        #### 1️⃣ 文档预处理阶段
+        ```python
+        # PDF文档加载和分页
+        loader = PyPDFLoader(file_path)
+        pages = loader.load_and_split()
+
+        # 向量化并存储到ClickZetta VectorStore
+        vectorstore.add_documents(pages)
+        ```
+
+        #### 2️⃣ 用户提问阶段
+        ```python
+        # 用户问题向量化
+        query_embedding = embeddings.embed_query(user_question)
+
+        # 语义相似性检索
+        relevant_docs = vectorstore.similarity_search(user_question, k=5)
+        ```
+
+        #### 3️⃣ 上下文构建阶段
+        ```python
+        # 组合检索结果和历史对话
+        context = "\\n".join([doc.page_content for doc in relevant_docs])
+        chat_history = chat_memory.get_messages()
+        ```
+
+        #### 4️⃣ AI回答生成阶段
+        ```python
+        # 使用RAG提示词生成答案
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=tongyi_llm,
+            retriever=vectorstore.as_retriever()
+        )
+        answer = qa_chain.invoke({"query": user_question})
+        ```
+
+        #### 5️⃣ 记忆存储阶段
+        ```python
+        # 存储对话到ChatMessageHistory
+        chat_memory.add_user_message(user_question)
+        chat_memory.add_ai_message(answer)
+        ```
+        """)
+
+    with tab3:
+        st.markdown("## 💡 核心代码示例")
+
+        st.markdown("### 🔧 双存储组件初始化")
+
+        st.code("""
+# 1. ClickZetta 引擎初始化
+engine = ClickZettaEngine(
+    service="your-service",
+    instance="your-instance",
+    workspace="your-workspace",
+    schema="your-schema",
+    username="your-username",
+    password="your-password",
+    vcluster="your-vcluster"
+)
+
+# 2. VectorStore 初始化 (知识库)
+vectorstore = ClickZettaVectorStore(
+    engine=engine,
+    embeddings=DashScopeEmbeddings(
+        dashscope_api_key="your-api-key",
+        model="text-embedding-v4"
+    ),
+    table_name="qa_knowledge_vectors",     # 向量表
+    distance_metric="cosine"
+)
+
+# 3. ChatMessageHistory 初始化 (对话记忆)
+chat_memory = ClickZettaChatMessageHistory(
+    engine=engine,
+    session_id="unique-session-id",
+    table_name="qa_chat_history"           # 对话表
+)
+
+# 4. 通义千问语言模型配置
+llm = Tongyi(
+    dashscope_api_key="your-api-key",
+    model_name="qwen-plus",
+    temperature=0.1                        # 问答需要较低创造性
+)
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 🎯 RAG 问答链构建")
+
+        st.code("""
+# 构建检索问答链
+qa_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",                    # 将检索内容组合后提问
+    retriever=vectorstore.as_retriever(
+        search_kwargs={"k": 5}             # 检索Top5相关文档
+    ),
+    verbose=True                           # 显示检索过程
+)
+
+# 执行问答
+result = qa_chain.invoke({
+    "query": "用户问题"
+})
+
+# 提取答案
+answer = result.get("result", str(result))
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 💬 会话记忆管理")
+
+        st.code("""
+# 会话记忆操作示例
+class ChatSession:
+    def __init__(self, engine, session_id):
+        self.chat_memory = ClickZettaChatMessageHistory(
+            engine=engine,
+            session_id=session_id,
+            table_name="qa_chat_history"
+        )
+
+    def add_conversation(self, user_msg, ai_response):
+        # 添加用户消息
+        self.chat_memory.add_user_message(user_msg)
+        # 添加AI回复
+        self.chat_memory.add_ai_message(ai_response)
+
+    def get_history(self):
+        # 获取完整对话历史
+        return self.chat_memory.messages
+
+    def clear_history(self):
+        # 清空当前会话历史
+        self.chat_memory.clear()
+
+# 使用示例
+session = ChatSession(engine, "user-session-123")
+session.add_conversation("什么是机器学习？", "机器学习是...")
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 📊 数据表结构示例")
+
+        st.code("""
+-- VectorStore 表结构 (知识库)
+CREATE TABLE qa_knowledge_vectors (
+    id String,                    -- 文档片段唯一标识
+    content String,               -- 原始文档内容
+    metadata String,              -- JSON格式元数据
+    embedding Array(Float32),     -- 1536维向量表示
+    created_at DateTime           -- 创建时间
+) ENGINE = ReplicatedMergeTree()
+ORDER BY id;
+
+-- ChatMessageHistory 表结构 (对话记录)
+CREATE TABLE qa_chat_history (
+    session_id String,            -- 会话唯一标识
+    message_id String,            -- 消息唯一标识
+    message_type String,          -- human/ai 消息类型
+    content String,               -- 消息内容
+    timestamp DateTime,           -- 消息时间戳
+    metadata String               -- 扩展元数据
+) ENGINE = ReplicatedMergeTree()
+ORDER BY (session_id, timestamp);
+
+-- 常用查询示例
+-- 1. 获取会话历史
+SELECT message_type, content, timestamp
+FROM qa_chat_history
+WHERE session_id = 'session-123'
+ORDER BY timestamp;
+
+-- 2. 向量相似性搜索
+SELECT id, content,
+       cosineDistance(embedding, [0.1, 0.2, ...]) as similarity
+FROM qa_knowledge_vectors
+ORDER BY similarity ASC
+LIMIT 5;
+        """, language="sql")
+
+    with tab4:
+        st.markdown("## 🔧 最佳实践与优化建议")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            ### ⚡ 性能优化
+
+            #### 🧠 向量检索优化
+            - **检索数量**: 调整k值平衡精度和性能(通常3-10)
+            - **向量维度**: 使用合适的嵌入模型维度
+            - **距离度量**: cosine适合文本，euclidean适合数值
+
+            #### 💬 对话记忆优化
+            - **会话管理**: 及时清理过期会话数据
+            - **记忆窗口**: 限制历史消息数量(5-20轮)
+            - **并发控制**: 使用唯一session_id避免冲突
+
+            #### 🤖 AI回答优化
+            - **温度设置**: 问答任务使用低温度(0.1-0.3)
+            - **提示词优化**: 明确指定回答格式和要求
+            - **上下文长度**: 控制检索内容长度避免超限
+            """)
+
+        with col2:
+            st.markdown("""
+            ### 🛡️ 企业级部署
+
+            #### 🔐 安全与权限
+            - **数据隔离**: 不同用户使用独立schema
+            - **访问控制**: 基于角色的数据访问权限
+            - **敏感信息**: 避免在对话中暴露隐私数据
+
+            #### 📊 监控与运维
+            - **会话统计**: 监控活跃会话数和问答质量
+            - **性能监控**: 跟踪检索延迟和AI响应时间
+            - **容量规划**: 定期清理历史数据控制存储成本
+
+            #### 🔄 可扩展性
+            - **水平扩展**: 利用ClickZetta分布式架构
+            - **负载均衡**: 多实例部署分散用户请求
+            - **缓存策略**: 热点问题使用缓存提升响应速度
+            """)
+
+        st.markdown("---")
+
+        st.markdown("## 🎓 学习建议")
+
+        st.markdown("""
+        ### 📚 循序渐进的学习路径
+
+        #### 🟢 初级阶段 (理解基础概念)
+        1. **体验问答流程**: 上传文档，进行简单问答
+        2. **观察检索过程**: 点击"检索详情"了解RAG工作原理
+        3. **测试会话记忆**: 进行多轮对话，观察上下文保持
+
+        #### 🟡 中级阶段 (掌握技术细节)
+        1. **理解RAG架构**: 学习检索+生成的组合机制
+        2. **调试检索效果**: 调整检索参数优化答案质量
+        3. **管理会话状态**: 理解session_id和记忆窗口概念
+
+        #### 🔴 高级阶段 (企业级应用)
+        1. **性能调优**: 优化大规模文档的检索性能
+        2. **多租户部署**: 设计多用户隔离的部署架构
+        3. **业务集成**: 与企业现有系统的API集成
+
+        ### 📖 相关资源
+        - **[ClickZetta 官方文档](https://www.yunqi.tech/documents/)**: 获取最新的平台功能和最佳实践
+        - **[LangChain RAG指南](https://docs.langchain.com/docs/use-cases/question-answering)**: 深入了解RAG架构
+        - **[通义千问 API](https://help.aliyun.com/zh/dashscope/)**: DashScope 平台使用指南
+        """)
+
 # Streamlit app configuration
 st.set_page_config(
     page_title="ClickZetta Intelligent Q&A",
@@ -30,8 +453,33 @@ st.set_page_config(
     layout="wide"
 )
 
+# Main navigation
+st.sidebar.markdown("## 📋 导航菜单")
+page_selection = st.sidebar.selectbox(
+    "选择功能页面",
+    ["🚀 智能问答", "📚 学习指南"],
+    key="qa_page_selection"
+)
+
+if page_selection == "📚 学习指南":
+    show_help_documentation()
+    st.stop()
+
 st.title('🤖 ClickZetta 智能问答系统')
-st.markdown("*基于 ClickZetta 的企业级文档问答系统，支持多轮对话和记忆功能*")
+st.markdown("*基于 ClickZetta VectorStore + ChatMessageHistory + 通义千问 AI 的企业级RAG问答系统*")
+
+# Add educational info banner
+st.info("""
+🎯 **系统特色**:
+• **🧠 VectorStore**: 使用 `{vector_table}` 表存储文档向量，支持语义检索
+• **💬 ChatMessageHistory**: 使用 `{chat_table}` 表存储对话历史，支持多轮会话
+• **🤖 RAG架构**: 检索增强生成，结合向量检索和AI生成的最佳实践
+
+💡 **使用提示**: 点击侧边栏的"📚 学习指南"了解RAG架构和双存储组件的详细原理
+""".format(
+    vector_table=app_config.get_vector_table_name("qa"),
+    chat_table=app_config.get_chat_table_name("qa")
+))
 
 # Render environment configuration status
 env_config, env_file_exists, clickzetta_configured, dashscope_configured = UIComponents.render_env_config_status()
@@ -318,6 +766,67 @@ with col2:
                             if doc.metadata:
                                 st.json(doc.metadata)
 
+    if st.button("🗄️ 查看存储表结构", disabled=not st.session_state.engine):
+        if st.session_state.engine:
+            try:
+                st.subheader("📊 ClickZetta 存储表详情")
+
+                # Vector Store Table
+                vector_table = app_config.get_vector_table_name("qa")
+                st.write(f"**🧠 VectorStore 表**: `{vector_table}`")
+
+                try:
+                    vector_schema_query = f"DESCRIBE TABLE {vector_table}"
+                    vector_result = st.session_state.engine.execute_query(vector_schema_query)
+                    if vector_result:
+                        vector_df = pd.DataFrame(vector_result.fetchall(),
+                                               columns=[desc[0] for desc in vector_result.description])
+                        st.dataframe(vector_df, use_container_width=True)
+
+                        # Get vector count
+                        vector_count_query = f"SELECT count(*) as total_vectors FROM {vector_table}"
+                        vector_count_result = st.session_state.engine.execute_query(vector_count_query)
+                        if vector_count_result:
+                            vector_count = vector_count_result.fetchone()[0]
+                            st.metric("🧠 存储的文档向量数", vector_count)
+                except Exception as e:
+                    st.warning(f"VectorStore表信息获取失败: {e}")
+
+                st.markdown("---")
+
+                # Chat Message History Table
+                chat_table = app_config.get_chat_table_name("qa")
+                st.write(f"**💬 ChatMessageHistory 表**: `{chat_table}`")
+
+                try:
+                    chat_schema_query = f"DESCRIBE TABLE {chat_table}"
+                    chat_result = st.session_state.engine.execute_query(chat_schema_query)
+                    if chat_result:
+                        chat_df = pd.DataFrame(chat_result.fetchall(),
+                                             columns=[desc[0] for desc in chat_result.description])
+                        st.dataframe(chat_df, use_container_width=True)
+
+                        # Get message count for current session
+                        message_count_query = f"SELECT count(*) as total_messages FROM {chat_table} WHERE session_id = '{st.session_state.session_id}'"
+                        message_count_result = st.session_state.engine.execute_query(message_count_query)
+                        if message_count_result:
+                            message_count = message_count_result.fetchone()[0]
+                            st.metric("💬 当前会话消息数", message_count)
+
+                        # Get total sessions count
+                        session_count_query = f"SELECT COUNT(DISTINCT session_id) as total_sessions FROM {chat_table}"
+                        session_count_result = st.session_state.engine.execute_query(session_count_query)
+                        if session_count_result:
+                            session_count = session_count_result.fetchone()[0]
+                            st.metric("📊 历史会话总数", session_count)
+                except Exception as e:
+                    st.warning(f"ChatMessageHistory表信息获取失败: {e}")
+
+                st.write("**📖 更多信息**: 访问 [ClickZetta 官方文档](https://www.yunqi.tech/documents/) 了解存储组件详细功能")
+
+            except Exception as e:
+                st.error(f"数据库连接错误: {e}")
+
     if st.button("💾 导出对话历史", disabled=not st.session_state.chat_history):
         if st.session_state.chat_history:
             # Create export data
@@ -329,7 +838,6 @@ with col2:
                     "message": message
                 })
 
-            import json
             json_str = json.dumps(export_data, ensure_ascii=False, indent=2)
 
             st.download_button(

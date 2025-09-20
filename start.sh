@@ -8,6 +8,7 @@
 #   ./start.sh search      # 启动混合搜索
 #   ./start.sh sql         # 启动SQL问答
 #   ./start.sh crawler     # 启动网络爬虫应用
+#   ./start.sh allinone    # 启动All-in-One综合演示
 #   ./start.sh             # 显示帮助信息
 
 set -e
@@ -41,11 +42,13 @@ show_help() {
     echo -e "  ${GREEN}search${NC}   - 混合搜索系统"
     echo -e "  ${GREEN}sql${NC}      - SQL 智能问答系统"
     echo -e "  ${GREEN}crawler${NC}  - 网络爬虫存储演示"
+    echo -e "  ${GREEN}allinone${NC} - All-in-One综合演示"
     echo ""
     echo -e "${YELLOW}示例:${NC}"
     echo "  ./start.sh summary    # 启动文档摘要应用"
     echo "  ./start.sh qa         # 启动问答系统"
     echo "  ./start.sh crawler    # 启动网络爬虫应用"
+    echo "  ./start.sh allinone   # 启动All-in-One综合演示"
     echo ""
     echo -e "${YELLOW}首次使用:${NC}"
     echo "  1. 复制环境配置: cp .env.example .env"
@@ -155,6 +158,10 @@ start_app() {
         "crawler")
             app_dir="clickzetta-web-crawler"
             app_title="网络爬虫存储演示"
+            ;;
+        "allinone")
+            app_dir="clickzetta-all-in-one"
+            app_title="All-in-One 综合演示"
             ;;
         *)
             echo -e "${RED}❌ 未知应用: $app_name${NC}"

@@ -29,6 +29,7 @@ clickzetta-langchain-examples/
 ├── clickzetta-hybrid-search/       # 混合搜索系统
 ├── clickzetta-sql-chat/             # SQL 智能问答
 ├── clickzetta-web-crawler/         # 网络爬虫存储演示
+├── clickzetta-all-in-one/          # All-in-One 综合演示
 └── README.md                       # 项目说明
 ```
 
@@ -115,6 +116,24 @@ clickzetta-langchain-examples/
 - ClickZettaFileStore 文件存储
 - ClickZettaVectorStore 向量搜索
 - LangChain网络爬取插件集成
+
+### 6. [ClickZetta All-in-One 综合演示](./clickzetta-all-in-one/)
+
+![All-in-One Demo](images/allinone-demo.png)
+
+**功能特性:**
+- 🚀 一站式体验所有功能
+- 📊 实时统计和可视化监控
+- 🎯 六大核心功能模块集成
+- 💻 现代化的多标签页界面
+- 📈 数据分布图表展示
+
+**技术亮点:**
+- 统一的存储服务管理
+- 智能的会话状态管理
+- 完整的错误处理机制
+- 响应式界面设计
+- 实时性能监控
 
 ## 🎨 核心优势
 
@@ -328,6 +347,9 @@ chmod +x start.sh
 # 启动网络爬虫存储演示
 ./start.sh crawler
 
+# 启动 All-in-One 综合演示 (推荐)
+./start.sh allinone
+
 # 查看帮助信息
 ./start.sh
 ```
@@ -360,6 +382,10 @@ streamlit run streamlit_app.py
 
 # 运行网络爬虫示例
 cd clickzetta-web-crawler
+streamlit run streamlit_app.py
+
+# 运行 All-in-One 综合演示
+cd clickzetta-all-in-one
 streamlit run streamlit_app.py
 ```
 
@@ -400,6 +426,7 @@ streamlit run streamlit_app.py
 - `search` - 混合搜索系统
 - `sql` - SQL 智能问答系统
 - `crawler` - 网络爬虫存储演示
+- `allinone` - All-in-One 综合演示
 
 #### 环境检查功能
 

@@ -449,8 +449,537 @@ class WebCrawlerDemo:
 
         return stats
 
+def show_help_documentation():
+    """显示帮助文档"""
+    st.markdown("# 🕷️ ClickZetta 网络爬虫与存储系统 - 学习指南")
+
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🎯 功能概述",
+        "🔧 技术架构",
+        "💡 实际应用",
+        "📚 学习资源"
+    ])
+
+    with tab1:
+        st.markdown("## 🎯 功能概述")
+
+        st.markdown("""
+        ### 🌟 什么是ClickZetta网络爬虫与存储系统？
+
+        这是一个完整的网络数据采集和存储解决方案，展示了如何使用ClickZetta的**四大存储服务**来构建现代化的数据pipeline：
+
+        **🔄 数据流程**：网页抓取 → 内容解析 → 多存储协同 → 智能检索
+        """)
+
+        # 核心功能展示
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            **📥 数据采集功能**
+            - 🕷️ 智能网页爬取
+            - 📄 HTML内容解析
+            - 🏷️ 元数据提取
+            - 🔍 内容清理优化
+            """)
+
+        with col2:
+            st.markdown("""
+            **💾 存储与检索**
+            - 📚 结构化文档存储
+            - 🗃️ 高速键值缓存
+            - 📁 原始文件保存
+            - 🔍 AI语义搜索
+            """)
+
+        st.markdown("""
+        ### 🏗️ 四大存储服务协同工作
+
+        本系统独特地展示了ClickZetta四种存储服务如何协同工作，就像一个完整的图书馆系统：
+        """)
+
+        storage_services = [
+            {
+                "name": "📚 ClickZettaDocumentStore",
+                "description": "结构化文档库",
+                "analogy": "就像图书馆的主要书架，存储书籍内容和详细信息",
+                "data": "网页正文、标题、作者、发布时间等结构化信息",
+                "table": "web_crawler_documents表"
+            },
+            {
+                "name": "🗃️ ClickZettaStore",
+                "description": "键值缓存系统",
+                "analogy": "就像图书馆的索引卡片，快速查找书籍状态和位置",
+                "data": "爬取状态、URL映射、内容哈希、更新时间",
+                "table": "web_crawler_cache表"
+            },
+            {
+                "name": "📁 ClickZettaFileStore",
+                "description": "原始文件仓库",
+                "analogy": "就像图书馆的档案室，保存原始文档和手稿",
+                "data": "完整HTML源码、CSS、JavaScript等原始文件",
+                "table": "Volume存储（文件系统）"
+            },
+            {
+                "name": "🔍 ClickZettaVectorStore",
+                "description": "AI语义搜索",
+                "analogy": "就像图书馆的智能推荐系统，根据内容相似性推荐相关书籍",
+                "data": "文本向量化表示，支持语义相似性搜索",
+                "table": "web_crawler_vectors表"
+            }
+        ]
+
+        for service in storage_services:
+            with st.expander(f"{service['name']} - {service['description']}"):
+                st.write(f"**生活化理解**: {service['analogy']}")
+                st.write(f"**存储内容**: {service['data']}")
+                st.write(f"**存储位置**: {service['table']}")
+
+        st.success("💡 **核心优势**: 四种存储服务各司其职，既保证了数据的完整性，又优化了不同场景下的查询性能！")
+
+    with tab2:
+        st.markdown("## 🔧 技术架构")
+
+        st.markdown("### 🛠️ 核心技术栈")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            **🌐 网络爬取技术**
+            - `requests`: HTTP请求处理
+            - `BeautifulSoup`: HTML解析
+            - `html2text`: 内容清理
+            - `validators`: URL验证
+            """)
+
+        with col2:
+            st.markdown("""
+            **🤖 AI与存储技术**
+            - `ClickZetta`: 统一数据存储平台
+            - `LangChain`: AI应用框架
+            - `DashScope`: 阿里云向量化服务
+            - `Streamlit`: 可视化界面
+            """)
+
+        st.markdown("### 🏗️ 系统架构图")
+
+        st.markdown("""
+        ```
+        🌐 网页输入
+            ↓
+        🕷️ 网络爬虫 (requests + BeautifulSoup)
+            ↓
+        📄 内容解析 (html2text + metadata extraction)
+            ↓
+        ┌─────────────────────────────────────────┐
+        │           ClickZetta存储层               │
+        ├─────────────────────────────────────────┤
+        │ 📚 DocumentStore │ 🗃️ Store (Cache)     │
+        │ (结构化文档)      │ (状态与映射)          │
+        │                  │                      │
+        │ 📁 FileStore     │ 🔍 VectorStore       │
+        │ (原始文件)        │ (语义搜索)            │
+        └─────────────────────────────────────────┘
+            ↓
+        🔍 智能检索 (关键词 + 语义搜索)
+            ↓
+        📊 可视化展示 (Streamlit)
+        ```
+        """)
+
+        st.markdown("### 🔄 数据处理流程")
+
+        process_steps = [
+            {
+                "step": "1️⃣ 网页抓取",
+                "description": "使用requests获取HTML内容，BeautifulSoup解析DOM结构",
+                "code": """
+# 发送HTTP请求
+response = requests.get(url, headers=headers, timeout=30)
+
+# 解析HTML内容
+soup = BeautifulSoup(response.content, 'html.parser')
+"""
+            },
+            {
+                "step": "2️⃣ 内容提取",
+                "description": "提取正文内容和元数据信息",
+                "code": """
+# 提取正文
+text_content = extract_text_content(response.text)
+
+# 提取元数据
+metadata = extract_metadata(soup, url)
+"""
+            },
+            {
+                "step": "3️⃣ 多存储写入",
+                "description": "同时写入四种存储服务，确保数据完整性",
+                "code": """
+# 文档存储
+doc_store.store_document(url_key, content, metadata)
+
+# 键值存储
+cache_store.mset([(status_key, status), (url_key, url)])
+
+# 文件存储
+file_store.store_file(f"{url_key}.html", raw_html)
+
+# 向量存储
+vector_store.add_documents([Document(content, metadata)])
+"""
+            },
+            {
+                "step": "4️⃣ 智能检索",
+                "description": "支持关键词和语义两种搜索方式",
+                "code": """
+# 语义搜索
+docs = vector_store.similarity_search(query, k=5)
+
+# 关键词搜索
+results = engine.execute_query(
+    f"SELECT * FROM documents WHERE content LIKE '%{query}%'"
+)
+"""
+            }
+        ]
+
+        for step_info in process_steps:
+            with st.expander(step_info["step"]):
+                st.write(step_info["description"])
+                st.code(step_info["code"], language="python")
+
+        st.markdown("### 🔍 表结构详情")
+
+        if st.button("🗄️ 查看存储表结构", key="crawler_table_structure"):
+            st.markdown("""
+            **📚 web_crawler_documents表 (DocumentStore)**
+            ```sql
+            - doc_id: VARCHAR      # URL的MD5哈希值
+            - doc_content: TEXT    # 提取的网页正文
+            - metadata: JSON       # 标题、作者、发布时间等元数据
+            - created_at: TIMESTAMP
+            ```
+
+            **🗃️ web_crawler_cache表 (Store)**
+            ```sql
+            - key: VARCHAR         # 缓存键 (如: crawl_status:xxxxx)
+            - value: BYTEA         # 缓存值 (状态、URL映射等)
+            - created_at: TIMESTAMP
+            ```
+
+            **📁 FileStore (Volume存储)**
+            ```
+            - 文件路径: web_crawler_files/{url_hash}.html
+            - 内容类型: text/html
+            - 文件大小: 自动计算
+            ```
+
+            **🔍 web_crawler_vectors表 (VectorStore)**
+            ```sql
+            - id: VARCHAR          # 文档ID
+            - embedding: FLOAT[]   # 1536维向量 (text-embedding-v4)
+            - document: TEXT       # 原始文档内容
+            - metadata: JSON       # 文档元数据
+            ```
+            """)
+
+    with tab3:
+        st.markdown("## 💡 实际应用场景")
+
+        st.markdown("### 🌟 企业级应用场景")
+
+        use_cases = [
+            {
+                "title": "📰 媒体内容聚合",
+                "description": "新闻机构可以使用此系统监控多个新闻源，自动采集、分析和分发新闻内容",
+                "benefits": ["实时新闻更新", "重复内容去重", "智能内容推荐", "历史数据查询"],
+                "example": "每日自动爬取100+新闻网站，智能分类和推荐相关新闻"
+            },
+            {
+                "title": "🏢 企业知识管理",
+                "description": "企业可以爬取内外部文档、政策、流程，构建智能知识库系统",
+                "benefits": ["文档自动收集", "智能搜索引擎", "版本变更追踪", "知识图谱构建"],
+                "example": "爬取公司内网文档，员工可通过自然语言查询相关政策"
+            },
+            {
+                "title": "🛍️ 电商价格监控",
+                "description": "电商平台可以监控竞品价格、库存、评价等信息，制定动态定价策略",
+                "benefits": ["实时价格追踪", "库存状态监控", "用户评价分析", "市场趋势预测"],
+                "example": "监控1000+竞品商品，自动调整价格策略"
+            },
+            {
+                "title": "🔬 学术研究助手",
+                "description": "研究人员可以自动收集论文、报告，进行文献综述和研究趋势分析",
+                "benefits": ["论文自动收集", "研究趋势分析", "引用关系挖掘", "重复研究避免"],
+                "example": "爬取arXiv、IEEE等平台，为AI研究提供文献支持"
+            },
+            {
+                "title": "🏛️ 政府公开信息监控",
+                "description": "监控政府网站的政策更新、公告发布，及时响应政策变化",
+                "benefits": ["政策实时监控", "法规变更提醒", "公开信息归档", "影响评估分析"],
+                "example": "监控政府官网，自动提取政策文件并分析对企业的影响"
+            }
+        ]
+
+        for i, case in enumerate(use_cases):
+            with st.expander(f"{case['title']}", expanded=i==0):
+                st.write(f"**应用描述**: {case['description']}")
+                st.write(f"**实际案例**: {case['example']}")
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**核心优势**:")
+                    for benefit in case['benefits']:
+                        st.write(f"- {benefit}")
+
+                with col2:
+                    if i == 0:  # 媒体内容
+                        st.code("""
+# 新闻爬取示例
+urls = [
+    "https://news.sina.com.cn",
+    "https://news.163.com",
+    "https://www.thepaper.cn"
+]
+
+for url in urls:
+    result = crawler.crawl_url(url)
+    # 自动分类和去重
+    classify_news(result)
+""", language="python")
+                    elif i == 1:  # 知识管理
+                        st.code("""
+# 知识库构建
+knowledge_sources = [
+    "内部文档系统",
+    "政策制度网站",
+    "行业标准文档"
+]
+
+# 智能问答
+query = "公司差旅报销政策"
+results = search_documents(query, "semantic")
+""", language="python")
+                    elif i == 2:  # 电商监控
+                        st.code("""
+# 价格监控
+products = ["iPhone 15", "华为Mate60"]
+
+for product in products:
+    price_data = crawl_ecommerce_data(product)
+    if price_changed(price_data):
+        update_pricing_strategy(product)
+""", language="python")
+                    elif i == 3:  # 学术研究
+                        st.code("""
+# 论文收集
+keywords = ["machine learning", "deep learning"]
+
+papers = crawl_academic_papers(keywords)
+trends = analyze_research_trends(papers)
+generate_literature_review(trends)
+""", language="python")
+                    else:  # 政府监控
+                        st.code("""
+# 政策监控
+gov_sites = [
+    "工信部官网",
+    "发改委网站",
+    "央行官网"
+]
+
+policies = monitor_policy_changes(gov_sites)
+analyze_business_impact(policies)
+""", language="python")
+
+        st.markdown("### ⚡ 性能优势")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            **🚀 ClickZetta存储优势**
+            - **10倍性能提升**: 云原生架构
+            - **无缝扩展**: GB到PB级数据
+            - **ACID事务**: 确保数据一致性
+            - **SQL兼容**: 熟悉的查询语法
+            """)
+
+        with col2:
+            st.markdown("""
+            **🤖 AI能力集成**
+            - **语义搜索**: 理解内容含义
+            - **智能推荐**: 基于相似性匹配
+            - **自动分类**: 内容智能标签
+            - **趋势分析**: 数据洞察挖掘
+            """)
+
+    with tab4:
+        st.markdown("## 📚 学习资源")
+
+        st.markdown("### 📖 官方文档")
+
+        doc_links = [
+            {
+                "title": "ClickZetta 官方文档",
+                "url": "https://www.yunqi.tech/documents/",
+                "description": "完整的ClickZetta平台使用指南"
+            },
+            {
+                "title": "LangChain 文档",
+                "url": "https://python.langchain.com/",
+                "description": "LangChain框架完整文档"
+            },
+            {
+                "title": "DashScope API文档",
+                "url": "https://help.aliyun.com/zh/dashscope/",
+                "description": "阿里云大模型服务API文档"
+            },
+            {
+                "title": "Streamlit 文档",
+                "url": "https://docs.streamlit.io/",
+                "description": "Streamlit应用开发文档"
+            }
+        ]
+
+        for doc in doc_links:
+            st.markdown(f"- **[{doc['title']}]({doc['url']})**: {doc['description']}")
+
+        st.markdown("### 🛠️ 快速开始")
+
+        st.markdown("""
+        #### 1️⃣ 环境准备
+        ```bash
+        # 安装依赖
+        pip install -r requirements.txt
+
+        # 配置环境变量
+        cp .env.example .env
+        # 编辑.env文件，填入ClickZetta和DashScope配置
+        ```
+
+        #### 2️⃣ 运行应用
+        ```bash
+        # 启动应用
+        streamlit run streamlit_app.py
+
+        # 打开浏览器访问 http://localhost:8501
+        ```
+
+        #### 3️⃣ 开始爬取
+        1. 在"🕷️ 网页爬取"标签页输入URL
+        2. 点击"🚀 开始爬取"按钮
+        3. 在"🔍 内容搜索"标签页测试搜索功能
+        4. 在"📊 存储统计"标签页查看数据状态
+        """)
+
+        st.markdown("### 🔧 自定义开发")
+
+        st.markdown("""
+        #### 扩展爬虫功能
+        ```python
+        # 自定义爬虫类
+        class CustomWebCrawler(WebCrawlerDemo):
+            def custom_parse_content(self, soup):
+                # 添加自定义解析逻辑
+                pass
+
+            def custom_metadata_extraction(self, soup):
+                # 添加自定义元数据提取
+                pass
+        ```
+
+        #### 扩展存储功能
+        ```python
+        # 添加新的存储服务
+        custom_store = ClickZettaCustomStore(
+            engine=engine,
+            table_name="custom_table"
+        )
+
+        # 自定义数据处理流程
+        def custom_data_pipeline(data):
+            # 添加数据预处理逻辑
+            processed_data = preprocess(data)
+
+            # 存储到自定义表
+            custom_store.store(processed_data)
+        ```
+        """)
+
+        st.markdown("### 💡 最佳实践")
+
+        best_practices = [
+            {
+                "category": "🕷️ 爬虫优化",
+                "tips": [
+                    "设置合理的请求间隔，避免被反爬虫系统拦截",
+                    "使用代理池和User-Agent轮换提高成功率",
+                    "针对不同网站设计专门的解析策略",
+                    "实施断点续爬功能，提高大批量任务的稳定性"
+                ]
+            },
+            {
+                "category": "💾 存储策略",
+                "tips": [
+                    "根据查询模式选择合适的存储服务组合",
+                    "设计合理的数据分区策略，提高查询性能",
+                    "定期清理过期数据，控制存储成本",
+                    "建立数据备份和恢复机制"
+                ]
+            },
+            {
+                "category": "🔍 搜索优化",
+                "tips": [
+                    "为不同类型内容设计专门的向量化策略",
+                    "结合关键词和语义搜索，提供更全面的结果",
+                    "建立搜索结果相关性评分机制",
+                    "实施搜索日志分析，持续优化搜索质量"
+                ]
+            },
+            {
+                "category": "🚀 性能优化",
+                "tips": [
+                    "使用异步并发爬取，提高数据采集效率",
+                    "实施智能缓存策略，减少重复计算",
+                    "优化数据库查询，使用索引和查询优化",
+                    "监控系统性能，及时发现和解决瓶颈"
+                ]
+            }
+        ]
+
+        for practice in best_practices:
+            with st.expander(practice["category"]):
+                for tip in practice["tips"]:
+                    st.write(f"- {tip}")
+
+        st.markdown("### 🤝 社区支持")
+
+        st.markdown("""
+        - **技术交流**: 加入ClickZetta技术交流群
+        - **问题反馈**: 通过GitHub Issues报告问题
+        - **功能建议**: 提交功能需求和改进建议
+        - **案例分享**: 分享你的应用案例和最佳实践
+        """)
+
+        st.success("🎉 恭喜！你已经掌握了ClickZetta网络爬虫与存储系统的核心知识。现在就开始构建你自己的智能数据采集系统吧！")
+
 def main():
     """主函数"""
+    # 页面导航
+    page_selection = st.selectbox(
+        "选择功能页面",
+        ["🕷️ 网络爬虫", "📚 学习指南"],
+        key="crawler_page_selection"
+    )
+
+    if page_selection == "📚 学习指南":
+        show_help_documentation()
+        return
+
+    # 原有的主要功能界面
     st.title("🕷️ ClickZetta Web Crawler & Storage Demo")
     st.markdown("### 展示LangChain网站爬取与ClickZetta存储服务的完整集成")
 

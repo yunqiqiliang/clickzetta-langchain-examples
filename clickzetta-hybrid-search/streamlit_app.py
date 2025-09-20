@@ -38,11 +38,508 @@ from components.common import (
 # 应用配置
 app_config = load_app_config("hybrid_search")
 
+# Helper function to show educational help documentation
+def show_help_documentation():
+    """显示详细的帮助文档"""
+    st.markdown("# 📚 ClickZetta 混合搜索系统 - 学习指南")
+
+    # Create tabs for different sections
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📋 系统概述",
+        "🏗️ 技术架构",
+        "💡 代码示例",
+        "🔧 最佳实践"
+    ])
+
+    with tab1:
+        st.markdown("## 📋 系统功能概述")
+
+        st.markdown("""
+        ### 🎯 核心功能
+
+        **ClickZetta 混合搜索系统** 是一个先进的企业级搜索解决方案，基于 **HybridStore + UnifiedRetriever** 架构，融合了向量搜索和全文搜索的优势。
+
+        #### 🔍 主要特点：
+        - **🧠 HybridStore**: 统一存储向量和全文索引，支持多种搜索模式
+        - **🔄 UnifiedRetriever**: 智能检索器，可动态调整搜索策略
+        - **⚖️ 权重调节**: 灵活调整向量搜索和全文搜索的权重比例
+        - **📊 实时统计**: 详细的搜索性能监控和优化建议
+        - **🧠 智能摘要**: 基于搜索结果的AI智能摘要生成
+        """)
+
+        st.markdown("---")
+
+        st.markdown("## 🆚 三种搜索模式对比")
+
+        # Search modes comparison
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown("""
+            #### 🧠 向量搜索 (Vector Search)
+            **类比**: 像一个**理解语义的智能助手**
+            - 📚 理解词汇的含义和上下文
+            - 🔍 找到"意思相近"的内容
+            - 🎯 适合概念性查询和语义搜索
+            - ⚡ 对同义词、近义词敏感
+
+            **优势**: 语义理解能力强
+            **局限**: 对精确关键词匹配较弱
+            """)
+
+        with col2:
+            st.markdown("""
+            #### 📝 全文搜索 (Full-text Search)
+            **类比**: 像一个**精确的文档索引员**
+            - 🔍 精确匹配关键词和短语
+            - ⚡ 支持复杂的布尔查询逻辑
+            - 📊 基于词频和文档频率排序
+            - 🇨🇳 智能中文分词处理
+
+            **优势**: 精确匹配，速度快
+            **局限**: 缺乏语义理解能力
+            """)
+
+        with col3:
+            st.markdown("""
+            #### ⚖️ 混合搜索 (Hybrid Search)
+            **类比**: 像一个**全能的搜索专家**
+            - 🎯 结合两种搜索方式的优势
+            - ⚖️ 可调节权重比例 (alpha参数)
+            - 🏆 获得最佳的搜索效果
+            - 📈 适应不同类型的查询需求
+
+            **优势**: 综合效果最佳
+            **推荐**: 大多数场景的首选
+            """)
+
+        st.markdown("---")
+
+        st.markdown("## 🏢 企业应用场景")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            #### 📚 企业知识管理
+            - **政策文档检索**: 快速找到相关的公司政策
+            - **技术文档搜索**: 精确匹配技术术语和概念
+            - **员工手册查询**: 支持自然语言和关键词搜索
+            """)
+
+            st.markdown("""
+            #### 🔬 研究与开发
+            - **论文文献检索**: 语义搜索相关研究方向
+            - **专利技术查询**: 精确匹配技术关键词
+            - **知识发现**: 发现概念间的潜在联系
+            """)
+
+        with col2:
+            st.markdown("""
+            #### 💼 商业智能
+            - **市场报告分析**: 多维度搜索市场数据
+            - **竞品情报收集**: 结合关键词和语义搜索
+            - **客户反馈分析**: 理解客户真实意图
+            """)
+
+            st.markdown("""
+            #### 📖 内容管理
+            - **新闻内容检索**: 支持主题和关键词搜索
+            - **法律条文查询**: 精确匹配法律术语
+            - **教育资源搜索**: 智能推荐相关学习材料
+            """)
+
+    with tab2:
+        st.markdown("## 🏗️ 技术架构深度解析")
+
+        # Architecture diagram
+        st.markdown("""
+        ### 📐 混合搜索架构图
+
+        ```
+        用户查询输入
+              ↓
+        ┌─────────────────────┐
+        │   查询预处理         │ ← 查询优化层
+        │   (Query Processing) │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │ ClickZetta          │ ← 统一存储层
+        │ HybridStore         │
+        │ 向量+全文双索引      │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │ Unified Retriever   │ ← 智能检索层
+        │ 权重调节 (alpha)     │
+        └─────────────────────┘
+             ↙    ↓    ↘
+        ┌─────────────────────┐
+        │  向量搜索    混合搜索   全文搜索  │ ← 多模式检索
+        │  (Vector)  (Hybrid)  (Fulltext)│
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │   结果融合与排序     │ ← 结果处理层
+        │   (Result Fusion)   │
+        └─────────────────────┘
+              ↓
+        ┌─────────────────────┐
+        │   AI智能摘要         │ ← 增强服务层
+        │   (通义千问)         │
+        └─────────────────────┘
+        ```
+        """)
+
+        st.markdown("---")
+
+        st.markdown("## 🗄️ ClickZetta 存储组件详解")
+
+        # HybridStore detailed explanation
+        st.markdown("""
+        ### ⚖️ HybridStore - 一体化混合存储
+
+        **类比理解**: HybridStore 就像是一个**超级智能的双语图书馆**
+        - 📚 **向量语言**: 理解文档的语义含义 (embeddings)
+        - 📝 **关键词语言**: 精确记录每个词汇 (full-text index)
+        - 🔄 **智能翻译**: 在两种"语言"间无缝切换
+        """)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            #### 🧠 向量存储部分
+            - **嵌入维度**: 1536维 (text-embedding-v4)
+            - **距离度量**: Cosine相似度
+            - **索引类型**: HNSW高性能向量索引
+            - **适用场景**: 语义搜索、概念匹配
+            """)
+
+        with col2:
+            st.markdown("""
+            #### 📝 全文索引部分
+            - **分词器**: ik智能分词 (中文优化)
+            - **索引结构**: 倒排索引 (Inverted Index)
+            - **查询语法**: 支持布尔查询、短语查询
+            - **适用场景**: 精确匹配、关键词搜索
+            """)
+
+        st.markdown("""
+        #### 🔧 技术参数详情
+
+        | 特性 | 向量搜索 | 全文搜索 | 混合搜索 |
+        |------|---------|----------|----------|
+        | **查询类型** | 语义相似 | 关键词匹配 | 两者结合 |
+        | **响应速度** | 中等 | 快速 | 中等 |
+        | **精确度** | 语义精确 | 字面精确 | 综合最优 |
+        | **召回率** | 高 | 中等 | 最高 |
+        | **参数控制** | embedding模型 | 分词器设置 | alpha权重 |
+        | **存储表** | `{table_name}` | 同一张表 | 同一张表 |
+        """.format(table_name=app_config.get_vector_table_name("hybrid_search")))
+
+        st.markdown("---")
+
+        st.markdown("## 🎛️ UnifiedRetriever 检索器详解")
+
+        st.markdown("""
+        ### 🔄 智能检索策略
+
+        UnifiedRetriever 是混合搜索的核心控制器，通过 **alpha 参数** 灵活调节搜索策略：
+
+        #### ⚖️ Alpha 权重参数 (0.0 - 1.0)
+        - **alpha = 0.0**: 纯全文搜索 (100% Full-text)
+        - **alpha = 0.3**: 全文为主 (30% Vector + 70% Full-text)
+        - **alpha = 0.7**: 向量为主 (70% Vector + 30% Full-text) ← **推荐**
+        - **alpha = 1.0**: 纯向量搜索 (100% Vector)
+
+        #### 🎯 不同查询类型的最佳权重建议：
+        """)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            **适合高alpha值 (0.7-1.0)**:
+            - 概念性问题："什么是机器学习？"
+            - 语义搜索："类似的解决方案"
+            - 意图理解："如何提高效率？"
+            - 同义词查询："优化" vs "改进"
+            """)
+
+        with col2:
+            st.markdown("""
+            **适合低alpha值 (0.0-0.3)**:
+            - 精确关键词："API接口文档"
+            - 专有名词："ClickZetta配置"
+            - 代码片段："def function_name"
+            - 数字编号："第三章节"
+            """)
+
+    with tab3:
+        st.markdown("## 💡 核心代码示例")
+
+        st.markdown("### 🔧 HybridStore 初始化")
+
+        st.code("""
+# 1. ClickZetta 引擎初始化
+engine = ClickZettaEngine(
+    service="your-service",
+    instance="your-instance",
+    workspace="your-workspace",
+    schema="your-schema",
+    username="your-username",
+    password="your-password",
+    vcluster="your-vcluster"
+)
+
+# 2. 嵌入模型配置
+embeddings = DashScopeEmbeddings(
+    dashscope_api_key="your-api-key",
+    model="text-embedding-v4"
+)
+
+# 3. HybridStore 初始化 (核心组件)
+hybrid_store = ClickZettaHybridStore(
+    engine=engine,
+    embeddings=embeddings,
+    table_name="hybrid_search_store",
+    text_analyzer="ik",               # 中文智能分词
+    distance_metric="cosine"          # 向量相似度度量
+)
+
+# 4. 添加文档到混合存储
+hybrid_store.add_documents(documents)
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 🎯 UnifiedRetriever 配置")
+
+        st.code("""
+# 创建统一检索器
+retriever = ClickZettaUnifiedRetriever(
+    hybrid_store=hybrid_store,
+    search_type="hybrid",             # 搜索模式: hybrid/vector/fulltext
+    alpha=0.7,                        # 权重: 0.7=向量70% + 全文30%
+    k=5                               # 返回结果数量
+)
+
+# 动态调整搜索参数
+retriever.search_type = "vector"     # 切换为纯向量搜索
+retriever.alpha = 1.0                # 调整权重
+retriever.k = 10                     # 增加结果数量
+
+# 执行搜索
+results = retriever.invoke("用户查询")
+
+# 访问不同搜索模式
+vector_results = retriever.get_relevant_documents(
+    query="查询内容",
+    search_type="vector"
+)
+
+fulltext_results = retriever.get_relevant_documents(
+    query="查询内容",
+    search_type="fulltext"
+)
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 🔍 搜索模式对比")
+
+        st.code("""
+# 搜索查询示例
+query = "如何优化数据库性能"
+
+# 1. 纯向量搜索 (语义理解)
+vector_retriever = ClickZettaUnifiedRetriever(
+    hybrid_store=hybrid_store,
+    search_type="vector",
+    alpha=1.0,
+    k=5
+)
+vector_results = vector_retriever.invoke(query)
+# 可能找到: "提升数据库效率", "数据库调优方案", "性能优化策略"
+
+# 2. 纯全文搜索 (关键词匹配)
+fulltext_retriever = ClickZettaUnifiedRetriever(
+    hybrid_store=hybrid_store,
+    search_type="fulltext",
+    alpha=0.0,
+    k=5
+)
+fulltext_results = fulltext_retriever.invoke(query)
+# 可能找到: 包含"优化"、"数据库"、"性能"等关键词的文档
+
+# 3. 混合搜索 (最佳效果)
+hybrid_retriever = ClickZettaUnifiedRetriever(
+    hybrid_store=hybrid_store,
+    search_type="hybrid",
+    alpha=0.7,
+    k=5
+)
+hybrid_results = hybrid_retriever.invoke(query)
+# 结合两种方式的优势，获得最佳搜索效果
+        """, language="python")
+
+        st.markdown("---")
+
+        st.markdown("### 📊 数据表结构示例")
+
+        st.code("""
+-- HybridStore 表结构 (统一存储)
+CREATE TABLE hybrid_search_store (
+    id String,                         -- 文档唯一标识
+    content String,                    -- 原始文档内容
+    metadata String,                   -- JSON格式元数据
+    embedding Array(Float32),          -- 1536维向量 (向量搜索用)
+    content_tokens Array(String),      -- 分词结果 (全文搜索用)
+    content_fulltext String,           -- 全文索引字段
+    created_at DateTime,               -- 创建时间
+
+    -- 向量索引 (用于向量搜索)
+    INDEX vec_idx embedding TYPE vector(1536) METRIC cosine,
+
+    -- 全文索引 (用于全文搜索)
+    INDEX ft_idx content_fulltext TYPE fulltext('ik')
+) ENGINE = ReplicatedMergeTree()
+ORDER BY id;
+
+-- 向量搜索查询
+SELECT id, content, metadata,
+       cosineDistance(embedding, [0.1, 0.2, ...]) as similarity
+FROM hybrid_search_store
+ORDER BY similarity ASC
+LIMIT 5;
+
+-- 全文搜索查询
+SELECT id, content, metadata,
+       ftsScore(content_fulltext, '优化 AND 数据库') as score
+FROM hybrid_search_store
+WHERE ftsMatch(content_fulltext, '优化 AND 数据库')
+ORDER BY score DESC
+LIMIT 5;
+
+-- 混合搜索 (由 UnifiedRetriever 自动处理)
+-- 结合向量相似度和全文相关性分数，按权重融合排序
+        """, language="sql")
+
+    with tab4:
+        st.markdown("## 🔧 最佳实践与优化建议")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("""
+            ### ⚡ 搜索性能优化
+
+            #### 🎛️ 参数调优
+            - **Alpha权重**: 根据查询类型动态调整
+              - 概念查询: 0.7-1.0 (偏向向量)
+              - 关键词查询: 0.0-0.3 (偏向全文)
+              - 混合查询: 0.5-0.7 (平衡)
+            - **返回数量**: 通常5-10个结果最优
+            - **分词器选择**:
+              - `ik`: 中文文档 (推荐)
+              - `standard`: 英文文档
+              - `keyword`: 精确匹配场景
+
+            #### 🧠 向量优化
+            - **模型选择**: text-embedding-v4 (最新)
+            - **向量维度**: 1536维 (平衡精度和性能)
+            - **批量处理**: 大量文档分批添加
+            """)
+
+        with col2:
+            st.markdown("""
+            ### 🔍 查询优化策略
+
+            #### 📝 查询重写
+            - **同义词扩展**: "优化" → "改进,提升,调优"
+            - **查询补全**: "数据库" → "数据库性能优化"
+            - **意图识别**: 自动判断查询类型
+
+            #### 🎯 场景化配置
+            - **FAQ搜索**: alpha=0.8 (语义优先)
+            - **代码搜索**: alpha=0.2 (关键词优先)
+            - **文档检索**: alpha=0.7 (混合最优)
+            - **实体查找**: alpha=0.0 (精确匹配)
+
+            #### 📊 结果优化
+            - **去重策略**: 避免相似内容重复
+            - **排序融合**: 综合多种相关性分数
+            - **多样性**: 确保结果覆盖不同方面
+            """)
+
+        st.markdown("---")
+
+        st.markdown("## 🎓 学习建议")
+
+        st.markdown("""
+        ### 📚 循序渐进的学习路径
+
+        #### 🟢 初级阶段 (理解搜索模式)
+        1. **体验三种模式**: 用同一查询测试向量、全文、混合搜索
+        2. **观察结果差异**: 比较不同模式返回的文档内容
+        3. **调整alpha参数**: 感受权重变化对结果的影响
+
+        #### 🟡 中级阶段 (掌握参数调优)
+        1. **分析查询类型**: 学会识别概念性vs关键词性查询
+        2. **优化搜索策略**: 为不同场景选择最佳参数
+        3. **监控性能指标**: 关注搜索延迟和结果质量
+
+        #### 🔴 高级阶段 (企业级部署)
+        1. **自定义分词器**: 针对专业领域优化分词
+        2. **查询理解**: 实现智能查询重写和扩展
+        3. **个性化搜索**: 基于用户历史优化搜索结果
+
+        ### 📖 相关资源
+        - **[ClickZetta 官方文档](https://www.yunqi.tech/documents/)**: 获取最新的平台功能和最佳实践
+        - **[Elasticsearch指南](https://www.elastic.co/guide/)**: 深入了解全文搜索原理
+        - **[Vector Search最佳实践](https://docs.langchain.com/docs/modules/indexes/vectorstores/)**: 向量搜索优化技巧
+        """)
+
 # 页面配置
+# Main navigation for help documentation
+if 'page_mode' not in st.session_state:
+    st.session_state.page_mode = "main"
+
+# Sidebar navigation
+with st.sidebar:
+    st.markdown("## 📋 导航菜单")
+    page_selection = st.selectbox(
+        "选择功能页面",
+        ["🚀 混合搜索", "📚 学习指南"],
+        key="hybrid_search_page_selection"
+    )
+
+    if page_selection == "📚 学习指南":
+        st.session_state.page_mode = "help"
+    else:
+        st.session_state.page_mode = "main"
+
+if st.session_state.page_mode == "help":
+    show_help_documentation()
+    st.stop()
+
+# Original app header for main mode
 UIComponents.render_app_header(
     app_config,
-    "基于 ClickZetta 的企业级混合搜索系统，结合向量搜索和全文搜索"
+    "基于 ClickZetta HybridStore + UnifiedRetriever 的企业级混合搜索系统"
 )
+
+# Add educational info banner
+st.info("""
+🎯 **系统特色**:
+• **⚖️ HybridStore**: 使用 `{table_name}` 表统一存储向量和全文索引
+• **🔄 UnifiedRetriever**: 智能检索器，支持三种搜索模式的无缝切换
+• **🎛️ 权重调节**: 通过alpha参数灵活控制向量搜索和全文搜索的比例
+
+💡 **使用提示**: 点击侧边栏的"📚 学习指南"了解混合搜索的详细原理和调优技巧
+""".format(table_name=app_config.get_vector_table_name("hybrid_search")))
 
 # 渲染环境配置状态
 env_config, env_file_exists, clickzetta_configured, dashscope_configured = UIComponents.render_env_config_status()
@@ -412,6 +909,49 @@ with col2:
                 "text_analyzer": text_analyzer,
                 "distance_metric": "cosine"
             })
+
+    if st.button("🗄️ 查看存储表结构", disabled=not st.session_state.manager):
+        if st.session_state.manager and st.session_state.hybrid_store:
+            try:
+                st.subheader("📊 ClickZetta HybridStore 表详情")
+
+                table_name = st.session_state.hybrid_store.table_name
+                st.write(f"**⚖️ HybridStore 表**: `{table_name}`")
+
+                try:
+                    # Get table schema
+                    schema_query = f"DESCRIBE TABLE {table_name}"
+                    schema_result = st.session_state.manager.engine.execute_query(schema_query)
+
+                    if schema_result:
+                        st.write("**📋 表结构信息**:")
+                        import pandas as pd
+                        schema_df = pd.DataFrame(schema_result.fetchall(),
+                                               columns=[desc[0] for desc in schema_result.description])
+                        st.dataframe(schema_df, use_container_width=True)
+
+                        # Get record count
+                        count_query = f"SELECT count(*) as total_documents FROM {table_name}"
+                        count_result = st.session_state.manager.engine.execute_query(count_query)
+                        if count_result:
+                            total_count = count_result.fetchone()[0]
+                            st.metric("📄 存储的文档数", total_count)
+
+                        # Display search capabilities
+                        st.markdown("**🔍 搜索能力说明**:")
+                        st.markdown("""
+                        - **向量搜索**: 使用 `embedding` 字段进行语义相似性检索
+                        - **全文搜索**: 使用 `content_fulltext` 字段进行关键词匹配
+                        - **混合搜索**: 结合两种方式，通过alpha权重调节比例
+                        """)
+
+                except Exception as e:
+                    st.warning(f"表结构信息获取失败: {e}")
+
+                st.write("**📖 更多信息**: 访问 [ClickZetta 官方文档](https://www.yunqi.tech/documents/) 了解HybridStore详细功能")
+
+            except Exception as e:
+                st.error(f"数据库连接错误: {e}")
 
     # 性能建议
     st.subheader("💡 性能建议")
