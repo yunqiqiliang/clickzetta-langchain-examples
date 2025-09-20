@@ -1,0 +1,8 @@
+streamlit>=1.33.0
+langchain-clickzetta>=0.1.4
+langchain>=0.1.19
+langchain-community>=0.0.38
+dashscope>=1.14.0
+pypdf>=4.2.0
+python-dotenv>=1.0.0
+validators>=0.28.1
