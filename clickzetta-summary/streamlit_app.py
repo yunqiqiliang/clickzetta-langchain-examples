@@ -543,6 +543,84 @@ with st.sidebar:
     summary_length = st.slider("摘要长度 (字数)", 100, 500, 200)
     summary_style = st.selectbox("摘要风格", ["简洁概述", "详细分析", "要点列表"])
 
+    # 数据管理
+    st.subheader("🗑️ 数据管理")
+
+    # 统计信息
+    with st.expander("📊 统计信息"):
+        if clickzetta_configured:
+            try:
+                engine = ClickZettaEngine(
+                    service=clickzetta_service,
+                    instance=clickzetta_instance,
+                    workspace=clickzetta_workspace,
+                    schema=clickzetta_schema,
+                    username=clickzetta_username,
+                    password=clickzetta_password,
+                    vcluster=clickzetta_vcluster
+                )
+
+                table_name = app_config.get_vector_table_name("summary")
+
+                try:
+                    # 检查表是否存在
+                    show_tables_query = f"SHOW TABLES LIKE '{table_name}'"
+                    tables_result, _ = engine.execute_query(show_tables_query)
+
+                    if tables_result and len(tables_result) > 0:
+                        # 获取向量数据数量
+                        count_query = f"SELECT COUNT(*) as count FROM {table_name}"
+                        count_result, _ = engine.execute_query(count_query)
+                        if count_result and len(count_result) > 0:
+                            vector_count = count_result[0]['count']
+                            st.metric("🧠 向量数据", f"{vector_count} 条")
+
+                            if vector_count > 0:
+                                st.info(f"💡 检测到已有 {vector_count} 条文档向量，可直接进行摘要")
+                        else:
+                            st.warning("⚠️ 无法获取数据统计")
+                    else:
+                        st.info("📋 暂无向量数据表")
+
+                except Exception as e:
+                    st.warning(f"⚠️ 无法获取统计信息: {e}")
+
+            except Exception as e:
+                st.error(f"❌ 无法获取统计信息: {e}")
+        else:
+            st.warning("⚠️ 请先配置ClickZetta连接")
+
+    # 清空数据功能
+    with st.expander("🗑️ 数据清空"):
+        st.write("**清空文档向量数据**")
+        st.caption("删除所有向量数据，重新开始")
+
+        if st.button("🗑️ 清空所有向量数据", type="secondary", help="删除向量数据"):
+            if clickzetta_configured:
+                try:
+                    engine = ClickZettaEngine(
+                        service=clickzetta_service,
+                        instance=clickzetta_instance,
+                        workspace=clickzetta_workspace,
+                        schema=clickzetta_schema,
+                        username=clickzetta_username,
+                        password=clickzetta_password,
+                        vcluster=clickzetta_vcluster
+                    )
+
+                    # 清空向量表
+                    table_name = app_config.get_vector_table_name("summary")
+                    delete_query = f"DELETE FROM {table_name}"
+                    engine.execute_query(delete_query)
+
+                    st.success("✅ 向量数据已清空，请重新上传文档")
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ 清空数据失败: {e}")
+            else:
+                st.warning("⚠️ 请先配置ClickZetta连接")
+
 # Main content area
 col1, col2 = st.columns([2, 1])
 
@@ -755,7 +833,7 @@ if st.button("🚀 开始摘要", type="primary", use_container_width=True):
                             schema_query = f"DESCRIBE TABLE {table_name}"
                             schema_result, schema_description = engine.execute_query(schema_query)
 
-                            if schema_result:
+                            if schema_result and schema_description and len(schema_result) > 0:
                                 st.write("**📋 表结构信息**:")
                                 # Handle duplicate column names
                                 column_names = [desc[0] for desc in schema_description]
@@ -772,12 +850,14 @@ if st.button("🚀 开始摘要", type="primary", use_container_width=True):
                                 schema_df = pd.DataFrame(schema_result, columns=unique_column_names)
                                 st.dataframe(schema_df, use_container_width=True)
 
-                            # Get record count
-                            count_query = f"SELECT count(*) as total_vectors FROM {table_name}"
-                            count_result, _ = engine.execute_query(count_query)
-                            if count_result:
-                                total_count = count_result[0][0]
-                                st.metric("📊 向量总数", total_count)
+                                # Get record count
+                                count_query = f"SELECT count(*) as total_vectors FROM {table_name}"
+                                count_result, _ = engine.execute_query(count_query)
+                                if count_result:
+                                    total_count = count_result[0]['total_vectors']
+                                    st.metric("📊 向量总数", total_count)
+                            else:
+                                st.warning(f"⚠️ 表 `{table_name}` 不存在或为空。请先使用摘要功能添加一些文档。")
 
                         except Exception as e:
                             st.warning(f"暂无法获取表结构信息: {e}")

@@ -610,6 +610,92 @@ with st.sidebar:
     st.header("📄 文档管理")
     uploaded_file = UIComponents.render_document_upload_area("hybrid_search_upload")
 
+    # 数据管理
+    st.header("🗑️ 数据管理")
+
+    # 统计信息
+    with st.expander("📊 统计信息"):
+        if clickzetta_configured:
+            try:
+                from langchain_clickzetta import ClickZettaEngine
+                from langchain_community.embeddings import DashScopeEmbeddings
+
+                engine = ClickZettaEngine(
+                    service=clickzetta_config.service,
+                    username=clickzetta_config.username,
+                    password=clickzetta_config.password,
+                    instance=clickzetta_config.instance,
+                    workspace=clickzetta_config.workspace,
+                    schema=clickzetta_config.schema,
+                    vcluster=clickzetta_config.vcluster if hasattr(clickzetta_config, 'vcluster') else None
+                )
+
+                table_name = app_config.get_vector_table_name("hybrid_search")
+
+                try:
+                    # 检查表是否存在
+                    show_tables_query = f"SHOW TABLES LIKE '{table_name}'"
+                    tables_result, _ = engine.execute_query(show_tables_query)
+
+                    if tables_result and len(tables_result) > 0:
+                        # 获取向量数据数量
+                        count_query = f"SELECT COUNT(*) as count FROM {table_name}"
+                        count_result, _ = engine.execute_query(count_query)
+                        if count_result and len(count_result) > 0:
+                            vector_count = count_result[0]['count']
+                            st.metric("🧠 向量数据", f"{vector_count} 条")
+                        else:
+                            st.warning("⚠️ 无法获取数据统计")
+                    else:
+                        st.info("📋 暂无数据表")
+
+                except Exception as e:
+                    st.warning(f"⚠️ 无法获取统计信息: {e}")
+
+            except Exception as e:
+                st.error(f"❌ 无法获取统计信息: {e}")
+        else:
+            st.warning("⚠️ 请先配置ClickZetta连接")
+
+    # 清空数据功能
+    with st.expander("🗑️ 数据清空"):
+        st.write("**清空混合搜索数据**")
+        st.caption("删除所有向量数据和搜索历史，重新开始")
+
+        if st.button("🗑️ 清空所有数据", type="secondary", help="删除向量数据和搜索历史"):
+            if clickzetta_configured:
+                try:
+                    from langchain_clickzetta import ClickZettaEngine
+
+                    engine = ClickZettaEngine(
+                        service=clickzetta_config.service,
+                        username=clickzetta_config.username,
+                        password=clickzetta_config.password,
+                        instance=clickzetta_config.instance,
+                        workspace=clickzetta_config.workspace,
+                        schema=clickzetta_config.schema,
+                        vcluster=clickzetta_config.vcluster if hasattr(clickzetta_config, 'vcluster') else None
+                    )
+
+                    # 清空混合搜索表
+                    table_name = app_config.get_vector_table_name("hybrid_search")
+                    delete_query = f"DELETE FROM {table_name}"
+                    engine.execute_query(delete_query)
+
+                    # 重置session状态
+                    st.session_state.hybrid_store = None
+                    st.session_state.retriever = None
+                    st.session_state.loaded_documents = []
+                    st.session_state.search_history = []
+
+                    st.success("✅ 数据已清空，请重新上传文档")
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ 清空数据失败: {e}")
+            else:
+                st.warning("⚠️ 请先配置ClickZetta连接")
+
     # 管理按钮
     if st.button("🗑️ 清空搜索历史"):
         st.session_state.search_history = []
@@ -643,6 +729,57 @@ with col1:
             success, message = st.session_state.manager.test_connection()
             if success:
                 st.success(message)
+
+                # 自动检测并加载已有的混合搜索数据
+                if not st.session_state.hybrid_store and not st.session_state.retriever:
+                    try:
+                        table_name = app_config.get_vector_table_name("hybrid_search")
+                        # 先检查表是否存在
+                        show_tables_query = f"SHOW TABLES LIKE '{table_name}'"
+                        tables_result, _ = st.session_state.manager.engine.execute_query(show_tables_query)
+                        if tables_result and len(tables_result) > 0:
+                            # 表存在，检查数据量
+                            count_query = f"SELECT COUNT(*) as count FROM {table_name}"
+                            count_result, _ = st.session_state.manager.engine.execute_query(count_query)
+                            if count_result and len(count_result) > 0:
+                                doc_count = count_result[0]['count']
+                                if doc_count > 0:
+
+                                    # 有数据则自动初始化混合存储
+                                    embeddings = DashScopeEmbeddings(
+                                        dashscope_api_key=st.session_state.manager.dashscope_config.api_key,
+                                        model="text-embedding-v4"
+                                    )
+                                    st.session_state.hybrid_store = ClickZettaHybridStore(
+                                        engine=st.session_state.manager.engine,
+                                        embeddings=embeddings,
+                                        table_name=table_name,
+                                        text_analyzer="ik",
+                                        distance_metric="cosine"
+                                    )
+
+                                    # 初始化检索器
+                                    st.session_state.retriever = ClickZettaUnifiedRetriever(
+                                        hybrid_store=st.session_state.hybrid_store,
+                                        search_type="hybrid",
+                                        alpha=0.7,
+                                        k=5
+                                    )
+
+                                    st.info(f"🎉 自动加载混合搜索数据成功！已有 {doc_count} 条文档数据，可直接开始搜索")
+                                    # 标记为已加载状态，使用模拟文档信息
+                                    st.session_state.loaded_documents = [{
+                                        "filename": "历史数据",
+                                        "info": {
+                                            "page_count": "已存在数据",
+                                            "total_characters": doc_count,
+                                            "file_name": "历史数据"
+                                        },
+                                        "processed_at": "已存在"
+                                    }]
+                    except Exception as e:
+                        # 表不存在或查询失败，这是正常情况
+                        pass
             else:
                 st.error(message)
                 st.stop()
@@ -662,9 +799,15 @@ with col1:
                 # 创建混合存储
                 table_name = app_config.get_vector_table_name("hybrid_search")
 
+                # 使用text-embedding-v4模型
+                embeddings = DashScopeEmbeddings(
+                    dashscope_api_key=st.session_state.manager.dashscope_config.api_key,
+                    model="text-embedding-v4"
+                )
+
                 st.session_state.hybrid_store = ClickZettaHybridStore(
                     engine=st.session_state.manager.engine,
-                    embeddings=st.session_state.manager.embeddings,
+                    embeddings=embeddings,
                     table_name=table_name,
                     text_analyzer=text_analyzer,
                     distance_metric="cosine"
@@ -846,9 +989,19 @@ with col2:
         doc_info = st.session_state.loaded_documents[0]["info"]
         st.success("🟢 文档已加载")
 
-        st.metric("📄 页数", doc_info["page_count"])
-        st.metric("📝 字符数", f"{doc_info['total_characters']:,}")
-        st.metric("📊 平均页长", doc_info["avg_chars_per_page"])
+        st.metric("📄 页数", doc_info.get("page_count", "N/A"))
+        st.metric("📝 字符数", f"{doc_info.get('total_characters', 0):,}")
+        if "avg_chars_per_page" in doc_info:
+            st.metric("📊 平均页长", doc_info["avg_chars_per_page"])
+        else:
+            # 计算平均页长
+            page_count = doc_info.get("page_count", 0)
+            total_chars = doc_info.get("total_characters", 0)
+            if isinstance(page_count, int) and page_count > 0:
+                avg_chars = total_chars // page_count
+                st.metric("📊 平均页长", f"{avg_chars} 字符/页")
+            else:
+                st.metric("📊 平均页长", "N/A")
     else:
         st.error("🔴 未加载文档")
 
@@ -919,34 +1072,49 @@ with col2:
                 st.write(f"**⚖️ HybridStore 表**: `{table_name}`")
 
                 try:
-                    # Get table schema
-                    schema_query = f"DESCRIBE TABLE {table_name}"
+                    # Get table schema - try multiple methods
+                    schema_query = f"DESCRIBE TABLE EXTENDED {table_name}"
                     schema_result, schema_description = st.session_state.manager.engine.execute_query(schema_query)
 
-                    if schema_result:
+                    if schema_result and len(schema_result) > 0:
                         st.write("**📋 表结构信息**:")
                         import pandas as pd
-                        # Handle duplicate column names
-                        column_names = [desc[0] for desc in schema_description]
-                        unique_column_names = []
-                        name_counts = {}
-                        for name in column_names:
-                            if name in name_counts:
-                                name_counts[name] += 1
-                                unique_column_names.append(f"{name}_{name_counts[name]}")
-                            else:
-                                name_counts[name] = 0
-                                unique_column_names.append(name)
 
-                        schema_df = pd.DataFrame(schema_result, columns=unique_column_names)
-                        st.dataframe(schema_df, use_container_width=True)
+                        # 将结果转换为表格显示
+                        try:
+                            # 创建 DataFrame
+                            df = pd.DataFrame(schema_result)
+
+                            # 过滤掉空行和注释行
+                            df = df[
+                                (df['column_name'] != '') &
+                                (~df['column_name'].str.startswith('#')) &
+                                (df['column_name'].notna())
+                            ]
+
+                            # 重新排列列的顺序
+                            if not df.empty:
+                                df = df[['column_name', 'data_type', 'comment']]
+                                df.columns = ['列名', '数据类型', '注释']
+                                st.dataframe(df, use_container_width=True)
+                            else:
+                                st.write("表结构数据为空")
+
+                        except Exception as e:
+                            # 如果创建表格失败，显示原始数据
+                            st.write("表格创建失败，显示原始数据:")
+                            for i, row in enumerate(schema_result):
+                                if row.get('column_name') and not row.get('column_name').startswith('#'):
+                                    st.write(f"**{row}**")
 
                         # Get record count
                         count_query = f"SELECT count(*) as total_documents FROM {table_name}"
                         count_result, _ = st.session_state.manager.engine.execute_query(count_query)
                         if count_result:
-                            total_count = count_result[0][0]
+                            total_count = count_result[0]['total_documents']
                             st.metric("📄 存储的文档数", total_count)
+                    else:
+                        st.warning(f"⚠️ 表 `{table_name}` 不存在或为空。请先使用混合搜索功能添加一些文档。")
 
                         # Display search capabilities
                         st.markdown("**🔍 搜索能力说明**:")

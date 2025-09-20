@@ -484,3 +484,55 @@ def truncate_text(text: str, max_length: int = 100) -> str:
     if len(text) <= max_length:
         return text
     return text[:max_length] + "..."
+
+
+def display_table_schema(schema_result: List[Dict[str, Any]]) -> None:
+    """
+    通用的表结构显示函数
+
+    Args:
+        schema_result: DESCRIBE TABLE 查询返回的结果
+    """
+    import pandas as pd
+
+    if not schema_result or len(schema_result) == 0:
+        st.warning("表结构数据为空")
+        return
+
+    try:
+        # 创建 DataFrame
+        df = pd.DataFrame(schema_result)
+
+        # 过滤掉空行、注释行和元数据行，只保留真正的表列信息
+        if 'column_name' in df.columns:
+            df = df[
+                (df['column_name'] != '') &
+                (~df['column_name'].str.startswith('#')) &
+                (df['column_name'].notna()) &
+                (~df['column_name'].isin(['workspace', 'schema', 'name', 'creator', 'created_time',
+                                         'last_modified_time', 'comment', 'properties', 'type',
+                                         'index', 'format', 'statistics']))
+            ]
+
+            # 重新排列列的顺序
+            if not df.empty and all(col in df.columns for col in ['column_name', 'data_type']):
+                if 'comment' in df.columns:
+                    display_df = df[['column_name', 'data_type', 'comment']].copy()
+                    display_df.columns = ['列名', '数据类型', '注释']
+                else:
+                    display_df = df[['column_name', 'data_type']].copy()
+                    display_df.columns = ['列名', '数据类型']
+
+                st.dataframe(display_df, use_container_width=True)
+            else:
+                st.write("未找到有效的表结构列")
+        else:
+            # 如果没有 column_name 字段，直接显示原始数据
+            st.dataframe(df, use_container_width=True)
+
+    except Exception as e:
+        # 如果创建表格失败，显示原始数据
+        st.write("表格创建失败，显示原始数据:")
+        for i, row in enumerate(schema_result[:10]):
+            if isinstance(row, dict) and row.get('column_name') and not str(row.get('column_name')).startswith('#'):
+                st.write(f"**第 {i+1} 行**: {row}")

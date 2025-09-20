@@ -1,5 +1,4 @@
 import os, sys, tempfile, streamlit as st, uuid
-import pandas as pd
 import json
 from datetime import datetime
 
@@ -19,7 +18,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.messages import HumanMessage, AIMessage
 
 # Import common components
-from components.common import UIComponents
+from components.common import UIComponents, display_table_schema
 from config.clickzetta_config import load_app_config
 
 # 应用配置
@@ -101,14 +100,14 @@ def show_help_documentation():
         用户提问
             ↓
         ┌─────────────────────┐
-        │   问题预处理         │ ← 查询优化层
-        │   (Query Processing) │
+        │   问题预处理          │ ← 查询优化层
+        │ (Query Processing)  │
         └─────────────────────┘
             ↓
         ┌─────────────────────┐
         │ ClickZetta          │ ← 向量检索层
         │ VectorStore         │
-        │ 语义相似性搜索       │
+        │ 语义相似性搜索        │
         └─────────────────────┘
             ↓
         ┌─────────────────────┐
@@ -118,7 +117,7 @@ def show_help_documentation():
             ↓
         ┌─────────────────────┐
         │   通义千问 AI        │ ← 生成回答层
-        │   (RAG提示词)       │
+        │   (RAG提示词)        │
         └─────────────────────┘
             ↓
         ┌─────────────────────┐
@@ -127,7 +126,7 @@ def show_help_documentation():
         └─────────────────────┘
             ↓
         ┌─────────────────────┐
-        │   用户界面展示       │ ← 交互展示层
+        │   用户界面展示        │ ← 交互展示层
         └─────────────────────┘
         ```
         """)
@@ -518,8 +517,8 @@ with st.sidebar:
     # AI Model Configuration
     with st.expander("DashScope 模型设置", expanded=not dashscope_configured):
         api_key = st.text_input("DashScope API Key", value=env_config['dashscope_api_key'], type="password")
-        embedding_model_options = ["text-embedding-v4", "text-embedding-v3"]
-        embedding_model_index = 0
+        embedding_model_options = ["text-embedding-v4", "text-embedding-v3", "text-embedding-v2", "text-embedding-v1"]
+        embedding_model_index = 0  # 默认使用 text-embedding-v4
         if env_config['embedding_model'] in embedding_model_options:
             embedding_model_index = embedding_model_options.index(env_config['embedding_model'])
         embedding_model = st.selectbox("嵌入模型", embedding_model_options, index=embedding_model_index)
@@ -542,14 +541,92 @@ with st.sidebar:
             st.session_state.session_id = str(uuid.uuid4())
             st.session_state.chat_history = []
             st.session_state.memory = None
-            st.rerun()
 
-        if st.button("🗑️ 清空历史"):
-            st.session_state.chat_history = []
-            st.session_state.memory = None
-            st.rerun()
+    # Data Management
+    with st.expander("🗑️ 数据管理"):
+        st.write("**清空知识库数据**")
+        st.caption("删除所有向量数据和聊天历史，重新开始")
 
-        st.caption(f"当前会话ID: {st.session_state.session_id[:8]}...")
+        if st.button("🗑️ 清空所有数据", type="secondary", help="删除向量数据和聊天历史"):
+            if clickzetta_configured:
+                try:
+                    from langchain_clickzetta import ClickZettaEngine
+                    engine = ClickZettaEngine(
+                        service=clickzetta_service,
+                        instance=clickzetta_instance,
+                        workspace=clickzetta_workspace,
+                        schema=clickzetta_schema,
+                        username=clickzetta_username,
+                        password=clickzetta_password,
+                        vcluster=clickzetta_vcluster
+                    )
+
+                    # 清空向量表
+                    vector_table = f"langchain_qa_vectors"
+                    delete_query = f"DELETE FROM {vector_table}"
+                    engine.execute_query(delete_query)
+
+                    # 清空聊天历史表
+                    chat_table = f"langchain_qa_chat_history"
+                    delete_chat_query = f"DELETE FROM {chat_table}"
+                    try:
+                        engine.execute_query(delete_chat_query)
+                    except:
+                        pass  # 聊天表可能不存在
+
+                    # 重置session状态
+                    st.session_state.retriever = None
+                    st.session_state.loaded_doc = None
+                    st.session_state.chat_history = []
+                    st.session_state.memory = None
+
+                    st.success("✅ 数据已清空，请重新上传文档")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ 清空数据失败: {e}")
+            else:
+                st.warning("⚠️ 请先配置ClickZetta连接")
+
+        st.write("**统计信息**")
+        if clickzetta_configured:
+            try:
+                from langchain_clickzetta import ClickZettaEngine
+                engine = ClickZettaEngine(
+                    service=clickzetta_service,
+                    instance=clickzetta_instance,
+                    workspace=clickzetta_workspace,
+                    schema=clickzetta_schema,
+                    username=clickzetta_username,
+                    password=clickzetta_password,
+                    vcluster=clickzetta_vcluster
+                )
+
+                # 检查向量数据
+                vector_table = f"langchain_qa_vectors"
+                try:
+                    count_query = f"SELECT COUNT(*) as count FROM {vector_table}"
+                    result, _ = engine.execute_query(count_query)
+                    if result:
+                        vector_count = result[0]['count']
+                        st.metric("📄 向量数据", vector_count)
+                except:
+                    st.metric("📄 向量数据", "表不存在")
+
+                # 检查聊天记录
+                chat_table = f"langchain_qa_chat_history"
+                try:
+                    count_query = f"SELECT COUNT(*) as count FROM {chat_table}"
+                    result, _ = engine.execute_query(count_query)
+                    if result:
+                        chat_count = result[0]['count']
+                        st.metric("💬 聊天记录", chat_count)
+                except:
+                    st.metric("💬 聊天记录", "表不存在")
+
+            except Exception as e:
+                st.caption(f"无法获取统计信息: {str(e)[:50]}...")
+        else:
+            st.caption("请先配置ClickZetta连接")
 
     # Document Upload
     st.header("📄 文档管理")
@@ -618,6 +695,57 @@ with col1:
                 # 使用新的内存管理方式 (避免弃用警告)
                 st.session_state.chat_memory = chat_memory
                 st.session_state.memory_window = memory_window
+
+                # 自动检测并加载已有的向量数据
+                if not st.session_state.retriever:
+                    try:
+                        vector_table = app_config.get_vector_table_name("qa")
+
+                        # 先检查表是否存在
+                        show_tables_query = f"SHOW TABLES LIKE '{vector_table}'"
+                        tables_result, _ = engine.execute_query(show_tables_query)
+
+                        if tables_result and len(tables_result) > 0:
+                            # 表存在，检查数据量
+                            count_query = f"SELECT COUNT(*) as count FROM {vector_table}"
+                            count_result, _ = engine.execute_query(count_query)
+
+                            if count_result and len(count_result) > 0:
+                                vector_count = count_result[0]['count']
+
+                                if vector_count > 0:
+                                    # 自动加载现有数据，不阻塞流程
+                                    try:
+                                        embeddings = DashScopeEmbeddings(
+                                            dashscope_api_key=api_key,
+                                            model="text-embedding-v4"
+                                        )
+
+                                        vectorstore = ClickZettaVectorStore(
+                                            engine=engine,
+                                            embeddings=embeddings,
+                                            table_name=vector_table,
+                                            metric="cosine"
+                                        )
+
+                                        st.session_state.retriever = vectorstore.as_retriever(
+                                            search_kwargs={"k": 5}
+                                        )
+
+                                        st.info(f"🎉 自动加载知识库成功！已有 {vector_count} 条向量数据，可直接开始问答")
+                                        st.session_state.loaded_doc = "已有数据"  # 标记为已加载状态
+                                    except Exception as e:
+                                        if "dimension" in str(e) or "COSINE_DISTANCE" in str(e):
+                                            st.warning(f"⚠️ 检测到向量维度不匹配（表中有 {vector_count} 条数据）。请在侧边栏选择正确的embedding模型或清空数据。")
+                                        else:
+                                            st.error(f"❌ 加载失败: {e}")
+                                # else: 表存在但无数据，正常情况，不显示任何信息
+                        # else: 表不存在，正常情况，不显示任何信息
+
+                    except Exception as e:
+                        # 表不存在或查询失败，这是正常情况，用户需要先上传文档
+                        # 只在真正的错误情况下显示（非表不存在的情况）
+                        pass
 
         except Exception as e:
             st.error(f"❌ ClickZetta 连接失败: {e}")
@@ -738,7 +866,7 @@ with col2:
     else:
         st.error("🔴 知识库未加载")
 
-    if st.session_state.memory:
+    if st.session_state.chat_memory:
         st.success("🟢 记忆系统已启用")
     else:
         st.error("🔴 记忆系统未启用")
@@ -766,7 +894,7 @@ with col2:
                             if doc.metadata:
                                 st.json(doc.metadata)
 
-    if st.button("🗄️ 查看存储表结构", disabled=not st.session_state.engine):
+    with st.expander("🗄️ 查看存储表结构", expanded=False):
         if st.session_state.engine:
             try:
                 st.subheader("📊 ClickZetta 存储表详情")
@@ -776,32 +904,29 @@ with col2:
                 st.write(f"**🧠 VectorStore 表**: `{vector_table}`")
 
                 try:
-                    vector_schema_query = f"DESCRIBE TABLE {vector_table}"
-                    vector_result, vector_description = st.session_state.engine.execute_query(vector_schema_query)
-                    if vector_result:
-                        # Handle duplicate column names
-                        column_names = [desc[0] for desc in vector_description]
-                        unique_column_names = []
-                        name_counts = {}
-                        for name in column_names:
-                            if name in name_counts:
-                                name_counts[name] += 1
-                                unique_column_names.append(f"{name}_{name_counts[name]}")
-                            else:
-                                name_counts[name] = 0
-                                unique_column_names.append(name)
+                    # 先检查表是否存在
+                    show_tables_query = f"SHOW TABLES LIKE '{vector_table}'"
+                    tables_result, _ = st.session_state.engine.execute_query(show_tables_query)
 
-                        vector_df = pd.DataFrame(vector_result, columns=unique_column_names)
-                        st.dataframe(vector_df, use_container_width=True)
+                    if tables_result and len(tables_result) > 0:
+                        # 表存在，获取schema信息
+                        vector_schema_query = f"DESCRIBE TABLE EXTENDED {vector_table}"
+                        vector_result, vector_description = st.session_state.engine.execute_query(vector_schema_query)
+
+                        if vector_result and len(vector_result) > 0:
+                            # 使用通用的表结构显示函数
+                            display_table_schema(vector_result)
 
                         # Get vector count
                         vector_count_query = f"SELECT count(*) as total_vectors FROM {vector_table}"
                         vector_count_result, _ = st.session_state.engine.execute_query(vector_count_query)
                         if vector_count_result:
-                            vector_count = vector_count_result[0][0]
+                            vector_count = vector_count_result[0]['total_vectors']
                             st.metric("🧠 存储的文档向量数", vector_count)
+                    else:
+                        st.info(f"📋 表 `{vector_table}` 尚未创建。上传文档后会自动创建。")
                 except Exception as e:
-                    st.warning(f"VectorStore表信息获取失败: {e}")
+                    st.warning(f"⚠️ 无法获取 VectorStore 表信息。请检查Lakehouse连接。")
 
                 st.markdown("---")
 
@@ -810,44 +935,43 @@ with col2:
                 st.write(f"**💬 ChatMessageHistory 表**: `{chat_table}`")
 
                 try:
-                    chat_schema_query = f"DESCRIBE TABLE {chat_table}"
-                    chat_result, chat_description = st.session_state.engine.execute_query(chat_schema_query)
-                    if chat_result:
-                        # Handle duplicate column names
-                        column_names = [desc[0] for desc in chat_description]
-                        unique_column_names = []
-                        name_counts = {}
-                        for name in column_names:
-                            if name in name_counts:
-                                name_counts[name] += 1
-                                unique_column_names.append(f"{name}_{name_counts[name]}")
-                            else:
-                                name_counts[name] = 0
-                                unique_column_names.append(name)
+                    # 先检查表是否存在
+                    show_tables_query = f"SHOW TABLES LIKE '{chat_table}'"
+                    tables_result, _ = st.session_state.engine.execute_query(show_tables_query)
 
-                        chat_df = pd.DataFrame(chat_result, columns=unique_column_names)
-                        st.dataframe(chat_df, use_container_width=True)
+                    if tables_result and len(tables_result) > 0:
+                        # 表存在，获取schema信息
+                        chat_schema_query = f"DESCRIBE TABLE EXTENDED {chat_table}"
+                        chat_result, chat_description = st.session_state.engine.execute_query(chat_schema_query)
+
+                        if chat_result and len(chat_result) > 0:
+                            # 使用通用的表结构显示函数
+                            display_table_schema(chat_result)
 
                         # Get message count for current session
                         message_count_query = f"SELECT count(*) as total_messages FROM {chat_table} WHERE session_id = '{st.session_state.session_id}'"
                         message_count_result, _ = st.session_state.engine.execute_query(message_count_query)
                         if message_count_result:
-                            message_count = message_count_result[0][0]
+                            message_count = message_count_result[0]['total_messages']
                             st.metric("💬 当前会话消息数", message_count)
 
                         # Get total sessions count
                         session_count_query = f"SELECT COUNT(DISTINCT session_id) as total_sessions FROM {chat_table}"
-                        session_count_result = st.session_state.engine.execute_query(session_count_query)
+                        session_count_result, _ = st.session_state.engine.execute_query(session_count_query)
                         if session_count_result:
-                            session_count = session_count_result.fetchone()[0]
+                            session_count = session_count_result[0]['total_sessions']
                             st.metric("📊 历史会话总数", session_count)
+                    else:
+                        st.info(f"📋 表 `{chat_table}` 尚未创建。开始聊天后会自动创建。")
                 except Exception as e:
-                    st.warning(f"ChatMessageHistory表信息获取失败: {e}")
+                    st.warning(f"⚠️ 无法获取 ChatMessageHistory 表信息。请检查Lakehouse连接。")
 
                 st.write("**📖 更多信息**: 访问 [ClickZetta 官方文档](https://www.yunqi.tech/documents/) 了解存储组件详细功能")
 
             except Exception as e:
-                st.error(f"数据库连接错误: {e}")
+                st.error(f"Lakehouse连接错误: {e}")
+        else:
+            st.info("⚠️ 请先连接 ClickZetta Lakehouse")
 
     if st.button("💾 导出对话历史", disabled=not st.session_state.chat_history):
         if st.session_state.chat_history:

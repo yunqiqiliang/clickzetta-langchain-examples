@@ -671,6 +671,94 @@ with st.sidebar:
             help="记住对话历史，支持上下文查询"
         )
 
+    # 数据管理
+    st.header("🗑️ 数据管理")
+
+    # 统计信息
+    with st.expander("📊 统计信息"):
+        if clickzetta_configured:
+            try:
+                from langchain_clickzetta import ClickZettaEngine
+
+                engine = ClickZettaEngine(
+                    service=clickzetta_config.service,
+                    username=clickzetta_config.username,
+                    password=clickzetta_config.password,
+                    instance=clickzetta_config.instance,
+                    workspace=clickzetta_config.workspace,
+                    schema=clickzetta_config.schema,
+                    vcluster=clickzetta_config.vcluster if hasattr(clickzetta_config, 'vcluster') else None
+                )
+
+                chat_table_name = app_config.get_chat_table_name("sql_chat")
+
+                try:
+                    # 检查对话历史表是否存在
+                    show_tables_query = f"SHOW TABLES LIKE '{chat_table_name}'"
+                    tables_result, _ = engine.execute_query(show_tables_query)
+
+                    if tables_result and len(tables_result) > 0:
+                        # 获取总消息数
+                        count_query = f"SELECT COUNT(*) as count FROM {chat_table_name}"
+                        count_result, _ = engine.execute_query(count_query)
+                        if count_result and len(count_result) > 0:
+                            total_messages = count_result[0]['count']
+                            st.metric("💬 总消息数", f"{total_messages} 条")
+
+                        # 获取会话数
+                        sessions_query = f"SELECT COUNT(DISTINCT session_id) as count FROM {chat_table_name}"
+                        sessions_result, _ = engine.execute_query(sessions_query)
+                        if sessions_result and len(sessions_result) > 0:
+                            total_sessions = sessions_result[0]['count']
+                            st.metric("📋 会话数", f"{total_sessions} 个")
+                    else:
+                        st.info("📋 暂无对话历史表")
+
+                except Exception as e:
+                    st.warning(f"⚠️ 无法获取统计信息: {e}")
+
+            except Exception as e:
+                st.error(f"❌ 无法获取统计信息: {e}")
+        else:
+            st.warning("⚠️ 请先配置ClickZetta连接")
+
+    # 清空数据功能
+    with st.expander("🗑️ 数据清空"):
+        st.write("**清空对话历史数据**")
+        st.caption("删除所有对话记录和SQL查询历史，重新开始")
+
+        if st.button("🗑️ 清空所有对话数据", type="secondary", help="删除对话历史和SQL记录"):
+            if clickzetta_configured:
+                try:
+                    from langchain_clickzetta import ClickZettaEngine
+
+                    engine = ClickZettaEngine(
+                        service=clickzetta_config.service,
+                        username=clickzetta_config.username,
+                        password=clickzetta_config.password,
+                        instance=clickzetta_config.instance,
+                        workspace=clickzetta_config.workspace,
+                        schema=clickzetta_config.schema,
+                        vcluster=clickzetta_config.vcluster if hasattr(clickzetta_config, 'vcluster') else None
+                    )
+
+                    # 清空对话历史表
+                    chat_table_name = app_config.get_chat_table_name("sql_chat")
+                    delete_query = f"DELETE FROM {chat_table_name}"
+                    engine.execute_query(delete_query)
+
+                    # 重置session状态
+                    st.session_state.chat_memory = None
+                    st.session_state.sql_history = []
+
+                    st.success("✅ 对话数据已清空，请重新开始")
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ 清空数据失败: {e}")
+            else:
+                st.warning("⚠️ 请先配置ClickZetta连接")
+
     # 会话管理
     st.header("📝 会话管理")
 
@@ -725,11 +813,39 @@ with col1:
 
                 # 创建聊天记忆
                 if use_memory:
+                    chat_table_name = app_config.get_chat_table_name("sql_chat")
                     chat_history = ClickZettaChatMessageHistory(
                         engine=st.session_state.manager.engine,
                         session_id=session_id,
-                        table_name=app_config.get_chat_table_name("sql_chat")
+                        table_name=chat_table_name
                     )
+
+                    # 自动检测并显示已有对话历史
+                    try:
+                        # 检查对话历史表是否存在且有数据
+                        history_count_query = f"SELECT COUNT(*) as count FROM {chat_table_name}"
+                        history_result, _ = st.session_state.manager.engine.execute_query(history_count_query)
+
+                        if history_result and len(history_result) > 0 and history_result[0]['count'] > 0:
+                            total_messages = history_result[0]['count']
+
+                            # 检查当前会话的消息数
+                            session_count_query = f"SELECT COUNT(*) as count FROM {chat_table_name} WHERE session_id = '{session_id}'"
+                            session_result, _ = st.session_state.manager.engine.execute_query(session_count_query)
+                            current_session_messages = session_result[0]['count'] if session_result else 0
+
+                            # 检查历史会话数
+                            sessions_count_query = f"SELECT COUNT(DISTINCT session_id) as count FROM {chat_table_name}"
+                            sessions_result, _ = st.session_state.manager.engine.execute_query(sessions_count_query)
+                            total_sessions = sessions_result[0]['count'] if sessions_result else 0
+
+                            if current_session_messages > 0:
+                                st.info(f"💬 当前会话已有 {current_session_messages} 条对话记录，继续之前的会话")
+                            elif total_messages > 0:
+                                st.info(f"📜 检测到历史对话数据: 共 {total_sessions} 个会话，{total_messages} 条消息记录")
+                    except Exception as e:
+                        # 表不存在或查询失败，这是正常情况
+                        pass
 
                     # 使用简化的记忆管理 (避免弃用警告)
                     st.session_state.chat_memory = chat_history
@@ -1105,10 +1221,10 @@ with col2:
                         st.write(f"**📋 表**: `{table}`")
 
                         # Get table schema
-                        schema_query = f"DESCRIBE TABLE {schema_name}.{table}"
+                        schema_query = f"DESCRIBE TABLE EXTENDED {schema_name}.{table}"
                         schema_result, schema_description = st.session_state.manager.engine.execute_query(schema_query)
 
-                        if schema_result:
+                        if schema_result and schema_description and len(schema_result) > 0:
                             # Handle duplicate column names
                             column_names = [desc[0] for desc in schema_description]
                             unique_column_names = []
@@ -1129,10 +1245,12 @@ with col2:
                                 count_query = f"SELECT count(*) as total_records FROM {schema_name}.{table}"
                                 count_result, _ = st.session_state.manager.engine.execute_query(count_query)
                                 if count_result:
-                                    total_count = count_result[0][0]
+                                    total_count = count_result[0]['total_records']
                                     st.metric(f"📊 {table} 记录数", total_count)
                             except:
                                 st.caption("无法获取记录数")
+                        else:
+                            st.warning(f"⚠️ 表 `{schema_name}.{table}` 不存在或为空。")
 
                         st.markdown("---")
 
